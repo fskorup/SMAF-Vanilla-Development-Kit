@@ -31,6 +31,7 @@
 #include "Wire.h"
 #include "Adafruit_Sensor.h"
 #include "Adafruit_BME280.h"
+#include "time.h"
 
 Adafruit_BME280 bme;  // I2C
 Adafruit_Sensor* bme_temp = bme.getTemperatureSensor();
@@ -91,7 +92,7 @@ PubSubClient mqtt(wifiClient);  // Uses WiFiClient for MQTT communication.
 * @param neoPixelBrightness The brightness level of the NeoPixels (0-255).
 * @param speakerPin The pin connected to the speaker for audio feedback.
 */
-SensoryAlert sensoryAlert(4, 2, 60, 5);
+SensoryAlert sensoryAlert(4, 2, 30, 5);
 
 /**
 * @brief Initializes the SMAF-Development-Kit and runs once at the beginning.
@@ -179,6 +180,9 @@ void setup() {
     // Disable WDT.
     suspendWatchdog();
   } else {
+    // Set device status to Not Ready Mode.
+    deviceStatus = NOT_READY;
+
     // Reset WDT.
     resetWatchdog();
   }
@@ -192,6 +196,8 @@ void setup() {
 * Be mindful of keeping the loop efficient and avoiding long blocking operations.
 *
 */
+String stringTime = String();
+
 void loop() {
   // Render the configuration page in maintenance mode.
   while (deviceStatus == MAINTENANCE_MODE) {
@@ -204,6 +210,20 @@ void loop() {
 
   // Attempt to connect to the MQTT broker.
   connectToMqttBroker();
+
+  configTime(3600, 3600, "pool.ntp.org");
+  // printLocalTime();
+
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    debug(ERR, "Failed to get time from NTP server.");
+    stringTime = "unknown";
+  }
+
+  char formattedTime[50];
+  strftime(formattedTime, sizeof(formattedTime), "%A, %B %d %Y %H:%M:%S", &timeinfo);
+  stringTime = String(formattedTime);
+  debug(SCS, "NTP: '%s'", formattedTime);
 
   sensors_event_t temp_event, pressure_event, humidity_event;
   bme_temp->getEvent(&temp_event);
@@ -222,7 +242,10 @@ void loop() {
   mqttData += ",\"humidity_unit\":\"hPa\",";
   mqttData += "\"pressure\":";
   mqttData += String(pressure_event.pressure, 2);
-  mqttData += ",\"pressure_unit\":\"%\"}";
+  mqttData += ",\"pressure_unit\":\"%\",";
+  mqttData += "\"time\":";
+  mqttData += "\"" + stringTime + "\"";
+  mqttData += "}";
 
   debug(LOG, "MQTT data package: '%s'.", mqttData.c_str());
 
@@ -230,9 +253,47 @@ void loop() {
   debug(CMD, "Posting data to MQTT broker '%s' on topic '%s'.", config.getMqttServerAddress(), config.getMqttTopic());
   mqtt.publish(config.getMqttTopic(), mqttData.c_str(), true);
 
-  delay(2000);
+  // Delay between data publish.
+  delay(1600);
 
+  // Check for incoming data on defined MQTT topic.
+  // This is hard core connection check.
+  // If no data on topic is received, we are not connected to internet or server and watchdog will reset the device.
   mqtt.loop();
+}
+
+void printLocalTime() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+  Serial.print("Day of week: ");
+  Serial.println(&timeinfo, "%A");
+  Serial.print("Month: ");
+  Serial.println(&timeinfo, "%B");
+  Serial.print("Day of Month: ");
+  Serial.println(&timeinfo, "%d");
+  Serial.print("Year: ");
+  Serial.println(&timeinfo, "%Y");
+  Serial.print("Hour: ");
+  Serial.println(&timeinfo, "%H");
+  Serial.print("Hour (12 hour format): ");
+  Serial.println(&timeinfo, "%I");
+  Serial.print("Minute: ");
+  Serial.println(&timeinfo, "%M");
+  Serial.print("Second: ");
+  Serial.println(&timeinfo, "%S");
+
+  Serial.println("Time variables");
+  char timeHour[3];
+  strftime(timeHour, 3, "%H", &timeinfo);
+  Serial.println(timeHour);
+  char timeWeekDay[10];
+  strftime(timeWeekDay, 10, "%A", &timeinfo);
+  Serial.println(timeWeekDay);
+  Serial.println();
 }
 
 /**
@@ -261,7 +322,7 @@ void connectToNetwork() {
       debug(CMD, "Connecting device to '%s'.", config.getNetworkName());
 
       // Reset WDT.
-      resetWatchdog();
+      // resetWatchdog();
 
       // Attempt to connect to the Wi-Fi network using configured credentials.
       WiFi.begin(config.getNetworkName(), config.getNetworkPass());
@@ -297,7 +358,7 @@ void connectToMqttBroker() {
     mqtt.setServer(config.getMqttServerAddress(), config.getMqttServerPort());
     // mqtt.setKeepAlive(30000);     // To be configured on the settings page.
     // mqtt.setSocketTimeout(4000);  // To be configured on the settings page.
-    mqtt.setCallback(callback);
+    mqtt.setCallback(serverResponse);
 
     // Log an error if not connected.
     debug(ERR, "Device not connected to MQTT broker '%s'.", config.getMqttServerAddress());
@@ -307,7 +368,7 @@ void connectToMqttBroker() {
       debug(CMD, "Connecting device to MQTT broker '%s'.", config.getMqttServerAddress());
 
       // Reset WDT.
-      resetWatchdog();
+      // resetWatchdog();
 
       if (mqtt.connect(config.getMqttClientId(), config.getMqttUsername(), config.getMqttPass())) {
         // Log successful connection and set device status.
@@ -326,8 +387,8 @@ void connectToMqttBroker() {
   }
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  debug(SCS, "Data posted to MQTT broker '%s' on topic '%s'.", config.getMqttServerAddress(), config.getMqttTopic());
+void serverResponse(char* topic, byte* payload, unsigned int length) {
+  debug(SCS, "Server '%s' responded.", config.getMqttServerAddress());
 
   // Reset WDT.
   if (deviceStatus != MAINTENANCE_MODE) {

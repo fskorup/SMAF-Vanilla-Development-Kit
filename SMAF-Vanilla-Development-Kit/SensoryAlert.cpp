@@ -118,11 +118,16 @@ void SensoryAlert::displayNotReadyMode() {
   uint32_t interval = 240;
 
   _neoPixel.setPixelColor(0, _neoPixel.Color(255, 0, 0));
-  _neoPixel.setPixelColor(1, _neoPixel.Color(255, 0, 0));
+  _neoPixel.setPixelColor(1, _neoPixel.Color(0, 0, 0));
   _neoPixel.show();
 
   delay(interval);
-  clearNeoPixel();
+
+  _neoPixel.setPixelColor(0, _neoPixel.Color(0, 0, 0));
+  _neoPixel.setPixelColor(1, _neoPixel.Color(255, 0, 0));
+  _neoPixel.show();
+
+  // clearNeoPixel();
   delay(interval);
 }
 
