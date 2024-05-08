@@ -1,6 +1,6 @@
 /**
-* @file SMAF-Development-Kit.ino
-* @brief Main Arduino sketch for the SMAF-Development-Kit project.
+* @file SMAF-Vanilla-Development-Kit.ino
+* @brief Main Arduino sketch for the SMAF-Vanilla-Development-Kit project.
 *
 * @license MIT License
 *
@@ -26,11 +26,16 @@
 #include "WiFi.h"
 #include "WiFiConfig.h"
 #include "PubSubClient.h"
-#include "DeviceStatusVisualizer.h"
-#include "PianoNotes.h"
+#include "SensoryAlert.h"
 #include "Helpers.h"
 #include "Wire.h"
-#include "SparkFun_u-blox_GNSS_v3.h"
+#include "Adafruit_Sensor.h"
+#include "Adafruit_BME280.h"
+
+Adafruit_BME280 bme;  // I2C
+Adafruit_Sensor* bme_temp = bme.getTemperatureSensor();
+Adafruit_Sensor* bme_pressure = bme.getPressureSensor();
+Adafruit_Sensor* bme_humidity = bme.getHumiditySensor();
 
 // Define constants for ESP32 core numbers.
 #define ESP32_CORE_PRIMARY 0    // Numeric value representing the primary core.
@@ -52,11 +57,11 @@ DeviceStatusEnum deviceStatus = NONE;  // Initial state is set to NOT_READY.
 void DeviceStatusThread(void* pvParameters);
 
 // Define the pin for the configuration button.
-int configurationButton = D2;
+int configurationButton = 6;
 
 // SoftAP configuration parameters.
 const char* configNetworkName = "SMAF-DK-SAP-CONFIG";
-const char* configNetworkPass = "Kurwe01!";
+const char* configNetworkPass = "123456789";
 const char* preferencesNamespace = "SMAF-DK";
 uint16_t configServerPort = 80;
 
@@ -75,11 +80,18 @@ WiFiConfig config(configNetworkName,
 WiFiClient wifiClient;          // Manages Wi-Fi connection.
 PubSubClient mqtt(wifiClient);  // Uses WiFiClient for MQTT communication.
 
-// Instantiate DeviceStatusVisualizer with RGB LED pins: LED_RED, LED_GREEN, LED_BLUE.
-DeviceStatusVisualizer statusVisualizer(LED_RED, LED_GREEN, LED_BLUE);
-
-// SFE_UBLOX_GNSS uses I2C.
-SFE_UBLOX_GNSS gnss;
+/**
+* @brief Constructor for SensoryAlert class.
+*
+* Initializes an instance of the SensoryAlert class with the provided configurations.
+* The NeoPixel pin should be set up as OUTPUT before calling this constructor.
+*
+* @param neoPixelPin The pin connected to the NeoPixel LED strip.
+* @param neoPixelCount The number of NeoPixels in the LED strip.
+* @param neoPixelBrightness The brightness level of the NeoPixels (0-255).
+* @param speakerPin The pin connected to the speaker for audio feedback.
+*/
+SensoryAlert sensoryAlert(4, 2, 60, 5);
 
 /**
 * @brief Initializes the SMAF-Development-Kit and runs once at the beginning.
@@ -90,26 +102,31 @@ SFE_UBLOX_GNSS gnss;
 *
 */
 void setup() {
+  // Create a new task (DeviceStatusThread) and assign it to the primary core (ESP32_CORE_PRIMARY).
+  xTaskCreatePinnedToCore(
+    DeviceStatusThread,    // Function to implement the task.
+    "DeviceStatusThread",  // Name of the task.
+    8000,                  // Stack size in words.
+    NULL,                  // Task input parameter (e.g., delay).
+    1,                     // Priority of the task.
+    NULL,                  // Task handle.
+    ESP32_CORE_SECONDARY   // Core where the task should run.
+  );
+
   // Initialize serial communication at a baud rate of 115200.
   Serial.begin(115200);
 
   // Set the pin mode for the configuration button to INPUT.
   pinMode(configurationButton, INPUT);
 
-  // Start I2C.
-  Wire.begin();
+  // Start I2C and initialize BME280 sensor.
+  // I2C pins - SDA: 1, SCL: 2
+  Wire.begin(1, 2);
+  bme.begin(0x77);
 
-  // Play intro tone on speaker.
-  // TODO: Make a function from this.
-  tone(D3, NOTE_E6);
-  delay(160);
-  noTone(D3);
-  tone(D3, NOTE_F6);
-  delay(160);
-  noTone(D3);
-  tone(D3, NOTE_G6);
-  delay(320);
-  noTone(D3);
+  // Initialize visualization library and play intro melody on speaker.
+  sensoryAlert.initializeNeoPixel();
+  sensoryAlert.playIntroMelody();
 
   // Delay for 2400 milliseconds (2.4 seconds).
   delay(2400);
@@ -121,17 +138,6 @@ void setup() {
 
   // Setup hardware Watchdog timer. Bark Bark.
   initWatchdog(30, true);
-
-  // Create a new task (DeviceStatusThread) and assign it to the primary core (ESP32_CORE_PRIMARY).
-  xTaskCreatePinnedToCore(
-    DeviceStatusThread,    // Function to implement the task.
-    "DeviceStatusThread",  // Name of the task.
-    8000,                  // Stack size in words.
-    NULL,                  // Task input parameter (e.g., delay).
-    1,                     // Priority of the task.
-    NULL,                  // Task handle.
-    ESP32_CORE_PRIMARY     // Core where the task should run.
-  );
 
   // Clear all preferences in namespace.
   // config.clearPreferences();
@@ -155,17 +161,8 @@ void setup() {
 
   // Check if SoftAP configuration server should be started.
   if ((digitalRead(configurationButton) == LOW) || (!config.isConfigValid())) {
-    // Play configuration tone on speaker.
-    // TODO: Make a function from this.
-    tone(D3, NOTE_F6);
-    delay(160);
-    noTone(D3);
-    tone(D3, NOTE_F6);
-    delay(160);
-    noTone(D3);
-    tone(D3, NOTE_F6);
-    delay(320);
-    noTone(D3);
+    // Play configuration melody on speaker.
+    sensoryAlert.playConfigurationMelody();
 
     // Set device status to Maintenance Mode.
     deviceStatus = MAINTENANCE_MODE;
@@ -182,18 +179,6 @@ void setup() {
     // Disable WDT.
     suspendWatchdog();
   } else {
-    // Start GNSS module.
-    while (!gnss.begin()) {
-      debug(ERR, "GNSS module not detected on I2C lines.");
-      delay(800);
-    }
-
-    // Log successful GNSS module initialization.
-    debug(SCS, "GNSS module detected on I2C lines.");
-
-    // Set the I2C port to output UBX only (turn off NMEA noise).
-    gnss.setI2COutput(COM_TYPE_UBX);
-
     // Reset WDT.
     resetWatchdog();
   }
@@ -211,6 +196,7 @@ void loop() {
   // Render the configuration page in maintenance mode.
   while (deviceStatus == MAINTENANCE_MODE) {
     config.renderConfigPage();
+    delay(10);
   }
 
   // Attempt to connect to the Wi-Fi network.
@@ -219,82 +205,34 @@ void loop() {
   // Attempt to connect to the MQTT broker.
   connectToMqttBroker();
 
+  sensors_event_t temp_event, pressure_event, humidity_event;
+  bme_temp->getEvent(&temp_event);
+  bme_pressure->getEvent(&pressure_event);
+  bme_humidity->getEvent(&humidity_event);
+
   // Store MQTT data here.
   String mqttData = String();
 
-  // Request (poll) the position, velocity and time (PVT) information.
-  // The module only responds when a new position is available. Default is once per second.
-  // getPVT() returns true when new data is received.
-  if (gnss.getPVT() == true) {
-    bool fixStatus = gnss.getGnssFixOk();
-    int32_t latitude = gnss.getLatitude();
-    int32_t longitude = gnss.getLongitude();
-    int32_t speed = gnss.getGroundSpeed();
-    int32_t altitude = gnss.getAltitudeMSL();
+  mqttData += "{";
+  mqttData += "\"temperature\":";
+  mqttData += String(temp_event.temperature, 2);
+  mqttData += ",\"temperature_unit\":\"C\",";
+  mqttData += "\"humidity\":";
+  mqttData += String(humidity_event.relative_humidity, 2);
+  mqttData += ",\"humidity_unit\":\"hPa\",";
+  mqttData += "\"pressure\":";
+  mqttData += String(pressure_event.pressure, 2);
+  mqttData += ",\"pressure_unit\":\"%\"}";
 
-    // mqttData += "{";
-    // mqttData += "\"tme\": \"";
-    // mqttData += addLeadingZero(gnss.getHour());
-    // mqttData += addLeadingZero(gnss.getMinute());
-    // mqttData += addLeadingZero(gnss.getSecond());
-    // mqttData += addLeadingZero(gnss.getDay());
-    // mqttData += addLeadingZero(gnss.getMonth());
-    // mqttData += addLeadingZero(gnss.getYear());
-    // mqttData += "\", ";
-    // mqttData += "\"lat\": ";
-    // mqttData += String((latitude * 1E-7), 6);
-    // mqttData += ", ";
-    // mqttData += "\"lon\": ";
-    // mqttData += String((longitude * 1E-7), 6);
-    // mqttData += ", ";
-    // mqttData += "\"spd\": ";
-    // mqttData += String(int((speed / 1000.0) * 3.6));
-    // mqttData += ", ";
-    // mqttData += "\"alt\": ";
-    // mqttData += String(int(altitude / 1000.0));
-    // mqttData += "}";
+  debug(LOG, "MQTT data package: '%s'.", mqttData.c_str());
 
-    mqttData += "{";
-    mqttData += "\"o\":";
-    mqttData += String((longitude * 1E-7), 6);
-    mqttData += ",";
-    mqttData += "\"a\":";
-    mqttData += String((latitude * 1E-7), 6);
-    mqttData += ",";
-    mqttData += "\"s\":";
-    mqttData += String(int((speed / 1000.0) * 3.6));
-    mqttData += ",";
-    mqttData += "\"t\":\"";
-    mqttData += addLeadingZero(gnss.getHour());
-    mqttData += addLeadingZero(gnss.getMinute());
-    mqttData += addLeadingZero(gnss.getSecond());
-    mqttData += addLeadingZero(gnss.getDay());
-    mqttData += addLeadingZero(gnss.getMonth());
-    mqttData += "24"; // TODO: gnss.getYear(); Clean this up. Year is returned like YYYY and we need it in YY format.
-    mqttData += "\"";
-    mqttData += "}";
+  //debug(SCS, "Device ready to post data, GNSS signal is locked. Data: '%s'.", mqttData.c_str());
+  debug(CMD, "Posting data to MQTT broker '%s' on topic '%s'.", config.getMqttServerAddress(), config.getMqttTopic());
+  mqtt.publish(config.getMqttTopic(), mqttData.c_str(), true);
 
-    //debug(LOG, "MQTT data package: '%s'.", mqttData.c_str());
-
-    // If the device is ready to send, publish a message to the MQTT broker.
-    if (fixStatus && latitude != 0 && longitude != 0) {
-      deviceStatus = READY_TO_SEND;
-      debug(SCS, "Device ready to post data, GNSS signal is locked. Data: '%s'.", mqttData.c_str());
-      debug(CMD, "Posting data to MQTT broker '%s' on topic '%s'.", config.getMqttServerAddress(), config.getMqttTopic());
-      mqtt.publish(config.getMqttTopic(), mqttData.c_str(), true);
-    } else {
-      deviceStatus = WAITING_GNSS;
-      debug(ERR, "Device is not ready to post data, searching for GNSS signal.");
-    }
-
-    // Reset WDT.
-    // resetWatchdog();
-  }
+  delay(2000);
 
   mqtt.loop();
-
-  // Delay before repeating the loop.
-  // delay(1600);
 }
 
 /**
@@ -378,7 +316,8 @@ void connectToMqttBroker() {
         // Subscribe to MQTT topic.
         mqtt.subscribe(config.getMqttTopic());
 
-        deviceStatus = WAITING_GNSS;
+        //deviceStatus = WAITING_GNSS;
+        deviceStatus = READY_TO_SEND;
       } else {
         // Retry after a delay if connection failed.
         delay(4000);
@@ -391,7 +330,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
   debug(SCS, "Data posted to MQTT broker '%s' on topic '%s'.", config.getMqttServerAddress(), config.getMqttTopic());
 
   // Reset WDT.
-  resetWatchdog();
+  if (deviceStatus != MAINTENANCE_MODE) {
+    resetWatchdog();
+  }
 }
 
 /**
@@ -404,34 +345,31 @@ void callback(char* topic, byte* payload, unsigned int length) {
 */
 void DeviceStatusThread(void* pvParameters) {
   while (true) {
-    // Turn off all LEDs before updating the status indication.
-    statusVisualizer.shutOffAll();
-
     // Update LED status based on the current device status.
     switch (deviceStatus) {
       case NONE:
-        // No specific indication for 'NONE' status.
-        statusVisualizer.shutOffAll();
+        // Clear the NeoPixel LED strip.
+        sensoryAlert.clearNeoPixel();
         break;
 
       case NOT_READY:
         // Blink the LED in red to indicate 'NOT_READY' status.
-        statusVisualizer.blinkRed(240);
+        sensoryAlert.displayNotReadyMode();
         break;
 
       case READY_TO_SEND:
         // Burst the LED in green to indicate 'READY_TO_SEND' status.
-        statusVisualizer.burstGreen(80, 1200, 4);
+        sensoryAlert.displayReadyToSendMode();
         break;
 
       case WAITING_GNSS:
         // Blink the LED in blue to indicate 'WAITING_GNSS' status.
-        statusVisualizer.blinkBlue(240);
+        sensoryAlert.displayWaitingGnssMode();
         break;
 
       case MAINTENANCE_MODE:
         // Blink the LED in purple to indicate 'MAINTENANCE_MODE' status.
-        statusVisualizer.blinkPurple(240);
+        sensoryAlert.displayMaintenanceMode();
         break;
     }
   }

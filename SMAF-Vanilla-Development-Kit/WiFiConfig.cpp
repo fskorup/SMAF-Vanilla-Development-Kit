@@ -170,12 +170,12 @@ void WiFiConfig::renderConfigPage() {
 
   // Wait until the client sends some data.
   while (!client.available()) {
-    delay(1);
+    delay(4);
   }
 
   // Read the first line of the request.
   String request = client.readStringUntil('\r');
-  client.flush();
+  //client.flush();
 
   /**
   * @note THIS WILL BE UPDATED IN FUTURE VERSION.
