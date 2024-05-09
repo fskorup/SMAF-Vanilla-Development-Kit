@@ -239,10 +239,10 @@ void loop() {
   mqttData += ",\"temperature_unit\":\"C\",";
   mqttData += "\"humidity\":";
   mqttData += String(humidity_event.relative_humidity, 2);
-  mqttData += ",\"humidity_unit\":\"hPa\",";
+  mqttData += ",\"humidity_unit\":\"%\",";
   mqttData += "\"pressure\":";
   mqttData += String(pressure_event.pressure, 2);
-  mqttData += ",\"pressure_unit\":\"%\",";
+  mqttData += ",\"pressure_unit\":\"hPa\",";
   mqttData += "\"time\":";
   mqttData += "\"" + stringTime + "\"";
   mqttData += "}";
