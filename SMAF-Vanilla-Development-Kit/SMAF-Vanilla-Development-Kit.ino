@@ -223,7 +223,7 @@ void loop() {
   char formattedTime[50];
   strftime(formattedTime, sizeof(formattedTime), "%A, %B %d %Y %H:%M:%S", &timeinfo);
   stringTime = String(formattedTime);
-  debug(SCS, "NTP: '%s'", formattedTime);
+  debug(LOG, "NTP: '%s'", formattedTime);
 
   sensors_event_t temp_event, pressure_event, humidity_event;
   bme_temp->getEvent(&temp_event);

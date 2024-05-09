@@ -276,6 +276,11 @@ private:
   bool _isConfigValid;
 
   /**
+
+  */
+  String scanNetworks();
+
+  /**
   * @brief Parse and extract the value of a field from a URL-encoded String.
   *
   * This function takes a URL-encoded String containing field-value pairs and

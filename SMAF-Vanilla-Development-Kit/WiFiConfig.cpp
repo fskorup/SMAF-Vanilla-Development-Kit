@@ -170,7 +170,7 @@ void WiFiConfig::renderConfigPage() {
 
   // Wait until the client sends some data.
   while (!client.available()) {
-    delay(4);
+    delay(10);
   }
 
   // Read the first line of the request.
@@ -182,41 +182,56 @@ void WiFiConfig::renderConfigPage() {
   */
   // Serve the HTML page.
   String html = String();
-  html = "<!DOCTYPE html>";
-  html += "<html lang='en'>";
+
+  html += "<!DOCTYPE html>";
+  html += "<html lang=\"en\">";
   html += "<head>";
-  html += "<meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=no'>";
+  html += "<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">";
+  html += "<title>SMAF-DK-SAP</title>";
+  html += "<script> function refreshScan() {window.location.href = '/refresh';} </script>";
   html += "<style>";
-  html += "* { font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.5; color: #202326; margin: 0; padding: 0; box-sizing: border-box; outline: none; list-style: none; word-wrap: anywhere; }";
-  html += ".no-margin { margin: 0; padding: 0; }";
-  html += "body { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: center; }";
-  html += "header, section, .frame-primary, .frame-secondary, form { display: flex; flex-direction: column; gap: 20px; }";
-  html += "header { padding-bottom: 8px; }";
-  html += ".frame-secondary { gap: 4px; }";
-  html += ".frame-horizontal { gap: 20px; display: flex; flex-direction: row; justify-content: space-between; flex-wrap: wrap; }";
-  html += "form { margin: 40px 24px 120px; max-width: 440px; }";
-  html += "h1, h2, h3, h4, h5 { color: inherit; line-height: 1.15; }";
-  html += "h1 { font-size: 2.074rem; font-weight: 700; }";
-  html += "h2 { font-size: 1.44rem; font-weight: 630; margin-top: 28px; }";
-  html += "p, span, label, input[type='text'], ul, li { font-size: 1rem; line-height: 1.5; color: inherit; }";
-  html += "span { font-weight: 550; }";
-  html += "input[type='text'] { font-family: monospace, sans-serif; padding: 12px; border: none; box-shadow: 0 0 0 1px #D7DFE8; border-radius: 0px; }";
-  html += "input[type='text']:focus { box-shadow: 0 0 0 2px #0180FF; }";
-  html += "input[type='submit'] { border: none; padding: 12px 24px; background: #00CC22; border-radius: 0px; font-weight: 550; color: #FFFFFF; cursor: pointer; font-size: 1.05rem; line-height: 1.5; flex-grow: 2; }";
-  html += "input[type='reset'] { border: 1px solid #D7DFE8; padding: 12px 24px; background: none; border-radius: 0px; font-weight: 550; color: inherit; cursor: pointer; font-size: 1.05rem; line-height: 1.5; flex-grow: 1; }";
-  html += "section { border-left: 3px solid #D7DFE8; padding: 16px 20px; }";
-  html += "section.success { border-color: #00CC22; background: #F2FFF4; color: #004D0D; }";
-  html += "section.info { border-color: #0180FF; background: #F2F9FF; color: #003366; }";
+  html += ":root {--monochrome-100: #202326; --monochrome-200: #D7DFE8; --monochrome-300: #FFFFFF; --info-50: #003366; --info-100: #0180FF; --info-200: #F2F9FF; --success-50: #004D0D; --success-100: #00CC22; --success-200: #F2FFF4; --error-50: #661414; --error-100: #FF3333; --error-200: #FFF2F2;}";
+  html += "* {font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.5; color: var(--monochrome-100); margin: 0; padding: 0; box-sizing: border-box; outline: none; list-style: none; word-wrap: break-words; cursor: default;}";
+  html += "body {display: flex;flex-direction: column;flex-wrap: nowrap;align-items: center;padding: 1.5rem 1.5rem 8rem;}";
+  html += "h1, h2, h3, h4, h5, h6 {color: inherit; line-height: 1.15; margin-top: 3.5rem; margin-bottom: 1rem; font-weight: 600;}";
+  html += "h1 {font-size: 2.027rem; font-weight: 700;}";
+  html += "h2 {font-size: 1.802rem;}";
+  html += "h3 {font-size: 1.602rem;}";
+  html += "h4 {font-size: 1.424rem;}";
+  html += "h5 {font-size: 1.266rem; margin-bottom: 0.5rem;}";
+  html += "h6 {font-size: 1.125rem; margin-bottom: 0.5rem;}";
+  html += "p {color: inherit; margin-top: 1rem; margin-bottom: 1rem;}";
+  html += "label {font-weight: 500;}";
+  html += "form {max-width: 460px;}";
+  html += "input[type='text'], input[type='submit'], input[type='reset'], select, button {all: unset;}";
+  html += "input[type='text'], select {font-family: monospace, sans-serif; padding: 0.75rem 1rem; box-shadow: 0 0 0 1px var(--monochrome-200) inset; cursor: text;}";
+  html += "input[type='text']:hover, select:hover {box-shadow: 0 0 0 2px var(--monochrome-200) inset;}";
+  html += "input[type='text']:focus, select:focus {box-shadow: 0 0 0 2px var(--info-100) inset;}";
+  html += "input[type='submit'], input[type='reset'], button {font-weight: 500; cursor: pointer; padding: 1rem 1.5rem; flex-grow: 2; text-align: center;}";
+  html += "input[type='submit'] {background: var(--info-100); color: var(--monochrome-300);}";
+  html += "input[type='reset'], button {box-shadow: 0 0 0 1px var(--monochrome-200) inset; flex-shrink: 2; flex-grow: 1;}";
+  html += "input[type='submit']:hover {background: var(--info-50);}";
+  html += "input[type='submit']:active {background: var(--info-50);}";
+  html += "input[type='reset']:hover, button:hover {box-shadow: 0 0 0 2px var(--monochrome-200) inset;}";
+  html += "input[type='reset']:active, button:active {box-shadow: 0 0 0 2px var(--monochrome-200) inset;}";
+  html += ".horizontal-frame {display: flex; flex-wrap: wrap; flex-direction: row; gap: 1.0rem; margin-top: 1.0rem;}";
+  html += "section {border-left: 3px solid var(--info-100); background: var(--info-200); color: var(--info-50); padding: 1rem 1.25rem; margin: 1.5rem 0rem;}";
+  html += "section.success {border-left: 3px solid var(--success-100); background: var(--success-200); color: var(--success-50);}";
+  html += "section p {margin: 0; padding: 0;}";
+  html += "section h6 {margin-top: 0;}";
+  html += ".frame {display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;}";
+  html += ".input-frame {display: flex; flex-direction: column; gap: 0.25rem;}";
+  html += ".h1-override {margin-top: 1.5rem; margin-bottom: 1.5rem;}";
+  html += ".fake-link {text-decoration: underline; color: var(--info-100); font-weight: 500;}";
+  html += "em {all: unset; color: var(--error-100); font-weight: 500;}";
   html += "</style>";
   html += "</head>";
-  html += "<html>";
   html += "<body>";
+
   html += "<form action='/configuration' method='get'>";
-  html += "<header>";
-  html += "<h1 class='no-margin'>🤙</h1>";
-  html += "<h1>Device<br>configuration</h1>";
-  html += "<p>Ribeye biltong salami, rump ham hock tail turducken meatball short loin meatloaf buffalo shank. Andouille venison pork chop chicken jowl kevin.</p>";
-  html += "</header>";
+  html += "<h1>🤙</h1>";
+  html += "<h1 class=\"h1-override\">Ready to update<br>your settings?</h1>";
+  html += "<p>Welcome to SMAF Config Hub! Quickly set up your SMAF device to connect via WiFi and transmit data using MQTT.</p>";
 
   // Check if the request is a form submission.
   if (request.indexOf("/configuration") != -1) {
@@ -233,57 +248,77 @@ void WiFiConfig::renderConfigPage() {
     savePreferences();
 
     // Display a success message with the saved configuration.
-    html += "<section class='success'>";
-    html += "<p>Configuration successfully saved to device. Data saved in device memory is shown bellow.</p>";
-    html += "<ul>";
-    html += "<li><span>SSID Name: </span>" + _networkName + "</li>";
-    html += "<li><span>SSID Password: </span>" + _networkPass + "</li>";
-    html += "<li><span>MQTT Server: </span>" + _mqttServerAddress + "</li>";
-    html += "<li><span>MQTT Port: </span>" + String(_mqttServerPort) + "</li>";
-    html += "<li><span>MQTT Username: </span>" + _mqttUsername + "</li>";
-    html += "<li><span>MQTT Password: </span>" + _mqttPass + "</li>";
-    html += "<li><span>MQTT Client ID: </span>" + _mqttClientId + "</li>";
-    html += "<li><span>MQTT Topic: </span>" + _mqttTopic + "</li>";
-    html += "</ul>";
-    html += "<p>Device will now reboot and try to connect to the configured SSID and connection with this page will be lost.</p>";
-    html += "</section>";
-    html += "<section class='info'>";
-    html += "<p>To start the configuration again, restart the device while holding the quick config button on the development board. Keep holding the quick config button until the purple LED is lit.</p>";
+    html += "<section class='success' style=\"display: block;\">";
+    html += "<h6>Success!</h6>";
+    html += "<p>Your SMAF device has successfully absorbed the new configuration. It's now all set to rock and roll with the updated settings.</p>";
     html += "</section>";
   }
 
-  // ... HTML form for user input ...
-  html += "<h2>WiFi router<br>configuration</h2>";
-  html += "<p>Establish and customize the wireless network name (SSID) and configure the Access Point for a secure and reliable connection.</p>";
-  html += "<div class='frame-primary'>";
-  html += "<div class='frame-secondary'><label for='" + String(NETWORK_NAME) + "'>SSID Name:</label><input id='" + String(NETWORK_NAME) + "' type='text' name='" + String(NETWORK_NAME) + "' value=\"" + _networkName + "\"></div>";  // something wrong here, not displayed if separator is in the string.
-  html += "<div class='frame-secondary'><label for='" + String(NETWORK_PASS) + "'>SSID Password:</label><input id='" + String(NETWORK_PASS) + "' type='text' name='" + String(NETWORK_PASS) + "' value='" + _networkPass + "'></div>";
+  html += "<h4>WiFi router<br>configuration</h4>";
+  html += "<p>Secure connectivity by entering your WiFi details - SSID and password. SMAF stays linked to the network for seamless operation.</p>";
+  html += "<p class=\"fake-link\" onclick=\"refreshScan()\">Refresh network list</p>";
+  html += "<div class=\"frame\">";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(NETWORK_NAME) + "'>Select SSID<em>*</em></label>";
+  html += "<select id='" + String(NETWORK_NAME) + "' type='text' name='" + String(NETWORK_NAME) + "' required>";
+
+  html += scanNetworks();
+
+  // if (request.indexOf("/refresh-scan") != -1) {
+  //   html += scanNetworks();
+  // }
+
+  html += "</select>";
   html += "</div>";
-  html += "<h2>MQTT server<br>configuration</h2>";
-  html += "<p>Configure MQTT protocol settings, including the broker's address, port, and authentication details, to enable effective device communication.</p>";
-  html += "<div class='frame-primary'>";
-  html += "<div class='frame-secondary'><label for='" + String(MQTT_SERVER_ADDRESS) + "'>MQTT Server:</label><input id='" + String(MQTT_SERVER_ADDRESS) + "' type='text' name='" + String(MQTT_SERVER_ADDRESS) + "' value='" + _mqttServerAddress + "'></div>";
-  html += "<div class='frame-secondary'><label for='" + String(MQTT_SERVER_PORT) + "'>MQTT Port:</label><input id='" + String(MQTT_SERVER_PORT) + "' type='text' inputmode='numeric' pattern='[0-9]*' name='" + String(MQTT_SERVER_PORT) + "' value='" + String(_mqttServerPort) + "'></div>";
-  html += "<div class='frame-secondary'><label for='" + String(MQTT_USERNAME) + "'>MQTT Username:</label><input id='" + String(MQTT_USERNAME) + "' type='text' name='" + String(MQTT_USERNAME) + "' value='" + _mqttUsername + "'></div>";
-  html += "<div class='frame-secondary'><label for='" + String(MQTT_PASS) + "'>MQTT Password:</label><input id='" + String(MQTT_PASS) + "' type='text' name='" + String(MQTT_PASS) + "' value='" + _mqttPass + "'></div>";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(NETWORK_PASS) + "'>SSID Password<em>*</em></label>";
+  html += "<input id='" + String(NETWORK_PASS) + "' type='text' name='" + String(NETWORK_PASS) + "' value='" + _networkPass + "' required>";
   html += "</div>";
-  html += "<h2>MQTT client & topic<br>configuration</h2>";
-  html += "<p>Define MQTT topic for streamlined message exchange and assign unique client IDs to device, ensuring precise and targeted communication within the MQTT network.</p>";
-  html += "<div class='frame-primary'>";
-  html += "<div class='frame-secondary'><label for='" + String(MQTT_CLIENT_ID) + "'>MQTT Client ID:</label><input id='" + String(MQTT_CLIENT_ID) + "' type='text' name='" + String(MQTT_CLIENT_ID) + "' value='" + _mqttClientId + "'></div>";
-  html += "<div class='frame-secondary'><label for='" + String(MQTT_TOPIC) + "'>MQTT Topic:</label><input id='" + String(MQTT_TOPIC) + "' type='text' name='" + String(MQTT_TOPIC) + "' value='" + _mqttTopic + "'></div>";
   html += "</div>";
-  html += "<h2>Finish<br>configuration</h2>";
-  html += "<p>Upon pressing the \"Upload configuration\" button, the device will reset to apply the changes, temporarily disrupting the connection. This ensures a swift and efficient update of settings.</p>";
-  html += "<section class='info'><p>Fields are not mandatory, but please double-check if all data is entered. Upon uploading the new configuration, the device will not start if any essential data is missing. Ensure all required information is provided before proceeding.</p></section>";
-  html += "<div class='frame-horizontal'>";
-  html += "<input type='reset' value='Reset form'>";
-  html += "<input type='submit' value='Upload configuration'>";
+  html += "<h4>MQTT server<br>configuration</h4>";
+  html += "<p>Tune communication with MQTT server settings. Enter the broker's address, port, and authentication details for a robust connection.</p>";
+  html += "<div class=\"frame\">";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(MQTT_SERVER_ADDRESS) + "'>MQTT Server<em>*</em></label>";
+  html += "<input id='" + String(MQTT_SERVER_ADDRESS) + "' type='text' name='" + String(MQTT_SERVER_ADDRESS) + "' value='" + _mqttServerAddress + "' required>";
+  html += "</div>";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(MQTT_SERVER_PORT) + "'>MQTT Port<em>*</em></label>";
+  html += "<input id='" + String(MQTT_SERVER_PORT) + "' type='text' inputmode='numeric' pattern='[0-9]*' name='" + String(MQTT_SERVER_PORT) + "' value='" + String(_mqttServerPort) + "' required>";
+  html += "</div>";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(MQTT_USERNAME) + "'>MQTT Username<em>*</em></label>";
+  html += "<input id='" + String(MQTT_USERNAME) + "' type='text' name='" + String(MQTT_USERNAME) + "' value='" + _mqttUsername + "' required>";
+  html += "</div>";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(MQTT_PASS) + "'>MQTT Password<em>*</em></label>";
+  html += "<input id='" + String(MQTT_PASS) + "' type='text' name='" + String(MQTT_PASS) + "' value='" + _mqttPass + "' required>";
+  html += "</div>";
+  html += "</div>";
+  html += "<h4>MQTT client & topic<br>configuration</h4>";
+  html += "<p>Personalize MQTT settings for SMAF by defining client specifics and choosing an optimal topic. Seamless communication is just a click away.</p>";
+  html += "<div class=\"frame\">";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(MQTT_CLIENT_ID) + "'>MQTT Client ID<em>*</em></label>";
+  html += "<input id='" + String(MQTT_CLIENT_ID) + "' type='text' name='" + String(MQTT_CLIENT_ID) + "' value='" + _mqttClientId + "' required>";
+  html += "</div>";
+  html += "<div class=\"input-frame\">";
+  html += "<label for='" + String(MQTT_TOPIC) + "'>MQTT Topic<em>*</em></label>";
+  html += "<input id='" + String(MQTT_TOPIC) + "' type='text' name='" + String(MQTT_TOPIC) + "' value='" + _mqttTopic + "' required>";
+  html += "</div>";
+  html += "</div>";
+  html += "<h4>Finish<br>configuration</h4>";
+  html += "<p>Ready to roll? Click \"Upload Configuration\" to apply changes, and SMAF will initiate its own reset to seamlessly implement the updated settings.</p>";
+  html += "<section class='info'>";
+  html += "<p>Note: Ensure all necessary data is entered; SMAF won't connect or transmit data without it.</p>";
+  html += "</section>";
+  html += "<div class=\"horizontal-frame\">";
+  html += "<input type=\"reset\" value=\"Reset form\">";
+  html += "<input type=\"submit\" value=\"Upload configuration\">";
   html += "</div>";
   html += "</form>";
   html += "</body>";
   html += "</html>";
-  //*/
 
   // Send the response to the client.
   client.println("HTTP/1.1 200 OK");
@@ -291,6 +326,25 @@ void WiFiConfig::renderConfigPage() {
   client.println("Connection: close");
   client.println();
   client.println(html);
+}
+
+String WiFiConfig::scanNetworks() {
+  int networksFound = WiFi.scanNetworks();
+  String networks = String();
+
+  if (networksFound != 0) {
+    for (int i = 0; i < networksFound; ++i) {
+      String network = String(WiFi.SSID(i).c_str());
+      networks += "<option value=\"" + network + "\">" + network + "</option>";
+    }
+
+    delay(10);
+  }
+
+  // Delete the scan result to free memory for code below.
+  WiFi.scanDelete();
+
+  return networks;
 }
 
 /**
