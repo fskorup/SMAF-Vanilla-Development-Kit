@@ -76,6 +76,13 @@ void WiFiConfig::startConfig() {
 
   // Begin the configuration server instance.
   _configServerInstance.begin();
+
+  // Display SoftAP information.
+  debug(SCS, "SoftAP configuration server started.");
+  debug(LOG, "SoftAP Name: '%s'.", getConfigNetworkName());
+  debug(LOG, "SoftAP Password: '%s'.", getConfigNetworkPass());
+  debug(LOG, "SoftAP Server IP address: '%s'.", getConfigServerIp());
+  debug(LOG, "SoftAP Server port: '%d'.", getConfigServerPort());
 }
 
 /**
@@ -162,7 +169,7 @@ uint16_t WiFiConfig::getConfigServerPort() {
 */
 void WiFiConfig::renderConfigPage() {
   // Check if a client has connected.
-  WiFiClient client = _configServerInstance.available();
+  WiFiClient client = _configServerInstance.accept();
 
   if (!client) {
     return;  // No client, exit the loop.
@@ -222,7 +229,7 @@ void WiFiConfig::renderConfigPage() {
   html += ".frame {display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;}";
   html += ".input-frame {display: flex; flex-direction: column; gap: 0.25rem;}";
   html += ".h1-override {margin-top: 1.5rem; margin-bottom: 1.5rem;}";
-  html += ".fake-link {text-decoration: underline; color: var(--info-100); font-weight: 500;}";
+  html += ".fake-link {text-decoration: underline; color: var(--info-100); font-weight: 500; cursor: pointer;}";
   html += "em {all: unset; color: var(--error-100); font-weight: 500;}";
   html += "</style>";
   html += "</head>";
@@ -233,20 +240,8 @@ void WiFiConfig::renderConfigPage() {
   html += "<h1 class=\"h1-override\">Ready to update<br>your settings?</h1>";
   html += "<p>Welcome to SMAF Config Hub! Quickly set up your SMAF device to connect via WiFi and transmit data using MQTT.</p>";
 
-  // Check if the request is a form submission.
+  // Check if the request is a form submission and save preferences.
   if (request.indexOf("/configuration") != -1) {
-    _networkName = parseFieldValue(request, NETWORK_NAME);
-    _networkPass = parseFieldValue(request, NETWORK_PASS);
-    _mqttServerAddress = parseFieldValue(request, MQTT_SERVER_ADDRESS);
-    _mqttServerPort = stringToUint16(parseFieldValue(request, MQTT_SERVER_PORT));
-    _mqttUsername = parseFieldValue(request, MQTT_USERNAME);
-    _mqttPass = parseFieldValue(request, MQTT_PASS);
-    _mqttClientId = parseFieldValue(request, MQTT_CLIENT_ID);
-    _mqttTopic = parseFieldValue(request, MQTT_TOPIC);
-
-    // Save preferences.
-    savePreferences();
-
     // Display a success message with the saved configuration.
     html += "<section class='success' style=\"display: block;\">";
     html += "<h6>Success!</h6>";
@@ -264,15 +259,11 @@ void WiFiConfig::renderConfigPage() {
 
   html += scanNetworks();
 
-  // if (request.indexOf("/refresh-scan") != -1) {
-  //   html += scanNetworks();
-  // }
-
   html += "</select>";
   html += "</div>";
   html += "<div class=\"input-frame\">";
   html += "<label for='" + String(NETWORK_PASS) + "'>SSID Password<em>*</em></label>";
-  html += "<input id='" + String(NETWORK_PASS) + "' type='text' name='" + String(NETWORK_PASS) + "' value='" + _networkPass + "' required>";
+  html += "<input id='" + String(NETWORK_PASS) + "' type='text' name='" + String(NETWORK_PASS) + "' value='" + getNetworkPass() + "' required>";
   html += "</div>";
   html += "</div>";
   html += "<h4>MQTT server<br>configuration</h4>";
@@ -280,19 +271,19 @@ void WiFiConfig::renderConfigPage() {
   html += "<div class=\"frame\">";
   html += "<div class=\"input-frame\">";
   html += "<label for='" + String(MQTT_SERVER_ADDRESS) + "'>MQTT Server<em>*</em></label>";
-  html += "<input id='" + String(MQTT_SERVER_ADDRESS) + "' type='text' name='" + String(MQTT_SERVER_ADDRESS) + "' value='" + _mqttServerAddress + "' required>";
+  html += "<input id='" + String(MQTT_SERVER_ADDRESS) + "' type='text' name='" + String(MQTT_SERVER_ADDRESS) + "' value='" + getMqttServerAddress() + "' required>";
   html += "</div>";
   html += "<div class=\"input-frame\">";
   html += "<label for='" + String(MQTT_SERVER_PORT) + "'>MQTT Port<em>*</em></label>";
-  html += "<input id='" + String(MQTT_SERVER_PORT) + "' type='text' inputmode='numeric' pattern='[0-9]*' name='" + String(MQTT_SERVER_PORT) + "' value='" + String(_mqttServerPort) + "' required>";
+  html += "<input id='" + String(MQTT_SERVER_PORT) + "' type='text' inputmode='numeric' pattern='[0-9]*' name='" + String(MQTT_SERVER_PORT) + "' value='" + String(getMqttServerPort()) + "' required>";
   html += "</div>";
   html += "<div class=\"input-frame\">";
   html += "<label for='" + String(MQTT_USERNAME) + "'>MQTT Username<em>*</em></label>";
-  html += "<input id='" + String(MQTT_USERNAME) + "' type='text' name='" + String(MQTT_USERNAME) + "' value='" + _mqttUsername + "' required>";
+  html += "<input id='" + String(MQTT_USERNAME) + "' type='text' name='" + String(MQTT_USERNAME) + "' value='" + getMqttUsername() + "' required>";
   html += "</div>";
   html += "<div class=\"input-frame\">";
   html += "<label for='" + String(MQTT_PASS) + "'>MQTT Password<em>*</em></label>";
-  html += "<input id='" + String(MQTT_PASS) + "' type='text' name='" + String(MQTT_PASS) + "' value='" + _mqttPass + "' required>";
+  html += "<input id='" + String(MQTT_PASS) + "' type='text' name='" + String(MQTT_PASS) + "' value='" + getMqttPass() + "' required>";
   html += "</div>";
   html += "</div>";
   html += "<h4>MQTT client & topic<br>configuration</h4>";
@@ -300,11 +291,11 @@ void WiFiConfig::renderConfigPage() {
   html += "<div class=\"frame\">";
   html += "<div class=\"input-frame\">";
   html += "<label for='" + String(MQTT_CLIENT_ID) + "'>MQTT Client ID<em>*</em></label>";
-  html += "<input id='" + String(MQTT_CLIENT_ID) + "' type='text' name='" + String(MQTT_CLIENT_ID) + "' value='" + _mqttClientId + "' required>";
+  html += "<input id='" + String(MQTT_CLIENT_ID) + "' type='text' name='" + String(MQTT_CLIENT_ID) + "' value='" + getMqttClientId() + "' required>";
   html += "</div>";
   html += "<div class=\"input-frame\">";
   html += "<label for='" + String(MQTT_TOPIC) + "'>MQTT Topic<em>*</em></label>";
-  html += "<input id='" + String(MQTT_TOPIC) + "' type='text' name='" + String(MQTT_TOPIC) + "' value='" + _mqttTopic + "' required>";
+  html += "<input id='" + String(MQTT_TOPIC) + "' type='text' name='" + String(MQTT_TOPIC) + "' value='" + getMqttTopic() + "' required>";
   html += "</div>";
   html += "</div>";
   html += "<h4>Finish<br>configuration</h4>";
@@ -326,6 +317,33 @@ void WiFiConfig::renderConfigPage() {
   client.println("Connection: close");
   client.println();
   client.println(html);
+
+
+  // Check if the request is a form submission and save preferences.
+  if (request.indexOf("/configuration") != -1) {
+    // Show debug message.
+    debug(CMD, "Saving preferences to '%s' namespace.", _preferencesNamespace);
+
+    // Save preferences.
+    saveString(NETWORK_NAME, parseFieldValue(request, NETWORK_NAME));
+    saveString(NETWORK_PASS, parseFieldValue(request, NETWORK_PASS));
+    saveString(MQTT_SERVER_ADDRESS, parseFieldValue(request, MQTT_SERVER_ADDRESS));
+    saveInt(MQTT_SERVER_PORT, stringToUint16(parseFieldValue(request, MQTT_SERVER_PORT)));
+    saveString(MQTT_USERNAME, parseFieldValue(request, MQTT_USERNAME));
+    saveString(MQTT_PASS, parseFieldValue(request, MQTT_PASS));
+    saveString(MQTT_CLIENT_ID, parseFieldValue(request, MQTT_CLIENT_ID));
+    saveString(MQTT_TOPIC, parseFieldValue(request, MQTT_TOPIC));
+
+    // Show debug message.
+    debug(SCS, "Saving preferences to '%s' namespace done.", _preferencesNamespace);
+    debug(CMD, "Restarting device to apply preferences.");
+
+    // Short delay before restart.
+    delay(2400);
+
+    // Uncomment the following line if a device restart is desired after saving preferences.
+    ESP.restart();
+  }
 }
 
 String WiFiConfig::scanNetworks() {
@@ -348,39 +366,6 @@ String WiFiConfig::scanNetworks() {
 }
 
 /**
-* @brief Save Wi-Fi and MQTT configuration preferences.
-*
-* This method stores the current configuration parameters to non-volatile storage
-* using the Preferences library. It saves Wi-Fi network name, password, MQTT server
-* address, port, username, password, client ID, and topic for future use.
-*/
-void WiFiConfig::savePreferences() {
-  // Create a Preferences instance with the specified namespace.
-  Preferences preferences;
-
-  // Begin preferences with the specified namespace.
-  preferences.begin(_preferencesNamespace, false);
-
-  // Save Wi-Fi network configuration.
-  preferences.putString(NETWORK_NAME, _networkName);
-  preferences.putString(NETWORK_PASS, _networkPass);
-
-  // Save MQTT configuration.
-  preferences.putString(MQTT_SERVER_ADDRESS, _mqttServerAddress);
-  preferences.putInt(MQTT_SERVER_PORT, _mqttServerPort);
-  preferences.putString(MQTT_USERNAME, _mqttUsername);
-  preferences.putString(MQTT_PASS, _mqttPass);
-  preferences.putString(MQTT_CLIENT_ID, _mqttClientId);
-  preferences.putString(MQTT_TOPIC, _mqttTopic);
-
-  // End preferences session.
-  preferences.end();
-
-  // Uncomment the following line if a device restart is desired after saving preferences.
-  // ESP.restart();
-}
-
-/**
 * @brief Load Wi-Fi and MQTT configuration preferences.
 *
 * This method reads configuration parameters from non-volatile storage using the
@@ -390,32 +375,53 @@ void WiFiConfig::savePreferences() {
 * overall configuration validity.
 */
 void WiFiConfig::loadPreferences() {
+  // Show debug message.
+  debug(CMD, "Loading preferences from '%s' namespace.", _preferencesNamespace);
+
   // Create a Preferences instance with the specified namespace.
   Preferences preferences;
 
   // Begin preferences with the specified namespace.
-  preferences.begin(_preferencesNamespace, false);
+  if (preferences.begin(_preferencesNamespace, false)) {
+    // Load Wi-Fi network configuration.
+    _networkName = preferences.getString(NETWORK_NAME, String());
+    _networkPass = preferences.getString(NETWORK_PASS, String());
 
-  // Load Wi-Fi network configuration.
-  _networkName = preferences.getString(NETWORK_NAME, String());
-  _networkPass = preferences.getString(NETWORK_PASS, String());
+    // Load MQTT configuration.
+    _mqttServerAddress = preferences.getString(MQTT_SERVER_ADDRESS, String());
+    _mqttServerPort = preferences.getInt(MQTT_SERVER_PORT, 0);
+    _mqttUsername = preferences.getString(MQTT_USERNAME, String());
+    _mqttPass = preferences.getString(MQTT_PASS, String());
+    _mqttClientId = preferences.getString(MQTT_CLIENT_ID, String());
+    _mqttTopic = preferences.getString(MQTT_TOPIC, String());
 
-  // Load MQTT configuration.
-  _mqttServerAddress = preferences.getString(MQTT_SERVER_ADDRESS, String());
-  _mqttServerPort = preferences.getInt(MQTT_SERVER_PORT, 0);
-  _mqttUsername = preferences.getString(MQTT_USERNAME, String());
-  _mqttPass = preferences.getString(MQTT_PASS, String());
-  _mqttClientId = preferences.getString(MQTT_CLIENT_ID, String());
-  _mqttTopic = preferences.getString(MQTT_TOPIC, String());
+    // Log preferences information.
+    debug(LOG, "Network Name: '%s'.", getNetworkName());
+    debug(LOG, "Network Password: '%s'.", getNetworkPass());
+    debug(LOG, "MQTT Server address: '%s'.", getMqttServerAddress());
+    debug(LOG, "MQTT Server port: '%d'.", getMqttServerPort());
+    debug(LOG, "MQTT Username: '%s'.", getMqttUsername());
+    debug(LOG, "MQTT Password: '%s'.", getMqttPass());
+    debug(LOG, "MQTT Client ID: '%s'.", getMqttClientId());
+    debug(LOG, "MQTT Topic: '%s'.", getMqttTopic());
 
-  // End preferences session.
-  preferences.end();
+    // End preferences session.
+    preferences.end();
 
-  // Check if all essential configuration parameters are non-empty.
-  if (_networkName.isEmpty() || _networkPass.isEmpty() || _mqttServerAddress.isEmpty() || _mqttServerPort == 0 || _mqttUsername.isEmpty() || _mqttPass.isEmpty() || _mqttClientId.isEmpty() || _mqttTopic.isEmpty()) {
-    _isConfigValid = false;
+    // Check if configuration preferences are valid and log the result.
+    if (_networkName.isEmpty() || _networkPass.isEmpty() || _mqttServerAddress.isEmpty() || _mqttServerPort == 0 || _mqttUsername.isEmpty() || _mqttPass.isEmpty() || _mqttClientId.isEmpty() || _mqttTopic.isEmpty()) {
+      _isConfigValid = false;
+
+      // Show debug message.
+      debug(ERR, "Preferences not valid.");
+    } else {
+      _isConfigValid = true;
+
+      // Show debug message.
+      debug(SCS, "Preferences are valid.");
+    }
   } else {
-    _isConfigValid = true;
+    debug(ERR, "Loading from preferences not supported.");
   }
 }
 
@@ -454,6 +460,114 @@ bool WiFiConfig::isConfigValid() {
 }
 
 /**
+* @brief Lorem Ipsum
+*
+* @return Lorem Ipsum
+*/
+String WiFiConfig::loadString(const char* key) {
+  // Create a Preferences instance with the specified namespace.
+  Preferences preferences;
+  static String data;
+
+  if (preferences.begin(_preferencesNamespace, READ_WRITE_MODE)) {
+    // Check if key exists and store default value if FALSE.
+    if (preferences.isKey(key) == false) {
+      preferences.putString(key, "Unknown");
+    }
+
+    // Load value from key.
+    data = preferences.getString(key);
+
+    // End preferences session.
+    preferences.end();
+  } else {
+    // Return a default value if loading fails
+    debug(ERR, "Loading '%s' key from '%s' namespace failed. Will use default value.", key, _preferencesNamespace);
+    data = "Unknown";
+  }
+
+  return data.c_str();
+}
+
+/**
+* @brief Lorem Ipsum
+*
+* @return Lorem Ipsum
+*/
+void WiFiConfig::saveString(const char* key, String value) {
+  // Create a Preferences instance with the specified namespace.
+  Preferences preferences;
+
+  if (preferences.begin(_preferencesNamespace, READ_WRITE_MODE)) {
+    // Check if key exists and store default value if FALSE.
+    preferences.putString(key, value);
+
+    // End preferences session.
+    preferences.end();
+
+    // Show success message.
+    debug(SCS, "Data saved to '%s' key in '%s' namespace.", key, _preferencesNamespace);
+  } else {
+    // Return a default value if loading fails
+    debug(ERR, "Saving data to '%s' key in '%s' namespace failed.", key, _preferencesNamespace);
+  }
+}
+
+/**
+* @brief Lorem Ipsum
+*
+* @return Lorem Ipsum
+*/
+uint16_t WiFiConfig::loadInt(const char* key) {
+  // Create a Preferences instance with the specified namespace.
+  Preferences preferences;
+  static int data;
+
+  if (preferences.begin(_preferencesNamespace, READ_WRITE_MODE)) {
+    // Check if key exists and store default value if FALSE.
+    if (preferences.isKey(key) == false) {
+      preferences.putInt(key, 0);
+    }
+
+    // Load value from key.
+    data = preferences.getInt(key);
+
+    // End preferences session.
+    preferences.end();
+  } else {
+    // Return a default value if loading fails
+    debug(ERR, "Loading '%s' key from '%s' namespace failed. Will use default value.", key, _preferencesNamespace);
+    data = 0;
+  }
+
+  return data;
+}
+
+/**
+* @brief Lorem Ipsum
+*
+* @return Lorem Ipsum
+*/
+void WiFiConfig::saveInt(const char* key, uint16_t value) {
+  // Create a Preferences instance with the specified namespace.
+  Preferences preferences;
+
+  if (preferences.begin(_preferencesNamespace, READ_WRITE_MODE)) {
+    // Check if key exists and store default value if FALSE.
+    preferences.putInt(key, value);
+
+    // End preferences session.
+    preferences.end();
+
+    // Show success message.
+    debug(SCS, "Data saved to '%s' key in '%s' namespace.", key, _preferencesNamespace);
+  } else {
+    // Return a default value if loading fails
+    debug(ERR, "Saving data to '%s' key in '%s' namespace failed.", key, _preferencesNamespace);
+  }
+}
+
+/**
 * @brief Get the configured Wi-Fi network name.
 * 
 * @return const char* representing the Wi-Fi network name.
@@ -463,11 +577,8 @@ bool WiFiConfig::isConfigValid() {
 *       or until the next call to a function that modifies the Wi-Fi network name.
 */
 const char* WiFiConfig::getNetworkName() {
-  if (_networkName.isEmpty()) {
-    return "NULL";
-  }
-
-  return _networkName.c_str();
+  static String networkName = loadString(NETWORK_NAME);
+  return networkName.c_str();
 }
 
 /**
@@ -480,11 +591,8 @@ const char* WiFiConfig::getNetworkName() {
 *       or until the next call to a function that modifies the Wi-Fi network password.
 */
 const char* WiFiConfig::getNetworkPass() {
-  if (_networkPass.isEmpty()) {
-    return "NULL";
-  }
-
-  return _networkPass.c_str();
+  static String networkPass = loadString(NETWORK_PASS);
+  return networkPass.c_str();
 }
 
 /**
@@ -497,11 +605,8 @@ const char* WiFiConfig::getNetworkPass() {
 *       or until the next call to a function that modifies the MQTT server address.
 */
 const char* WiFiConfig::getMqttServerAddress() {
-  if (_mqttServerAddress.isEmpty()) {
-    return "NULL";
-  }
-
-  return _mqttServerAddress.c_str();
+  static String mqttServerAddress = loadString(MQTT_SERVER_ADDRESS);
+  return mqttServerAddress.c_str();
 }
 
 /**
@@ -514,11 +619,8 @@ const char* WiFiConfig::getMqttServerAddress() {
 *       or until the next call to a function that modifies the MQTT username.
 */
 const char* WiFiConfig::getMqttUsername() {
-  if (_mqttUsername.isEmpty()) {
-    return "NULL";
-  }
-
-  return _mqttUsername.c_str();
+  static String mqttUsername = loadString(MQTT_USERNAME);
+  return mqttUsername.c_str();
 }
 
 /**
@@ -531,11 +633,8 @@ const char* WiFiConfig::getMqttUsername() {
 *       or until the next call to a function that modifies the MQTT password.
 */
 const char* WiFiConfig::getMqttPass() {
-  if (_mqttPass.isEmpty()) {
-    return "NULL";
-  }
-
-  return _mqttPass.c_str();
+  static String mqttPass = loadString(MQTT_PASS);
+  return mqttPass.c_str();
 }
 
 /**
@@ -548,11 +647,8 @@ const char* WiFiConfig::getMqttPass() {
 *       or until the next call to a function that modifies the MQTT client ID.
 */
 const char* WiFiConfig::getMqttClientId() {
-  if (_mqttClientId.isEmpty()) {
-    return "NULL";
-  }
-
-  return _mqttClientId.c_str();
+  static String mqttClientId = loadString(MQTT_CLIENT_ID);
+  return mqttClientId.c_str();
 }
 
 /**
@@ -565,11 +661,8 @@ const char* WiFiConfig::getMqttClientId() {
 *       or until the next call to a function that modifies the MQTT topic.
 */
 const char* WiFiConfig::getMqttTopic() {
-  if (_mqttTopic.isEmpty()) {
-    return "NULL";
-  }
-
-  return _mqttTopic.c_str();
+  static String mqttTopic = loadString(MQTT_TOPIC);
+  return mqttTopic.c_str();
 }
 
 /**
@@ -578,7 +671,7 @@ const char* WiFiConfig::getMqttTopic() {
 * @return The MQTT server port.
 */
 uint16_t WiFiConfig::getMqttServerPort() {
-  return _mqttServerPort;
+  return loadInt(MQTT_SERVER_PORT);
 }
 
 /**

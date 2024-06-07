@@ -29,14 +29,6 @@
 #include "SensoryAlert.h"
 #include "Helpers.h"
 #include "Wire.h"
-#include "Adafruit_Sensor.h"
-#include "Adafruit_BME280.h"
-#include "time.h"
-
-Adafruit_BME280 bme;  // I2C
-Adafruit_Sensor* bme_temp = bme.getTemperatureSensor();
-Adafruit_Sensor* bme_pressure = bme.getPressureSensor();
-Adafruit_Sensor* bme_humidity = bme.getHumiditySensor();
 
 // Define constants for ESP32 core numbers.
 #define ESP32_CORE_PRIMARY 0    // Numeric value representing the primary core.
@@ -56,9 +48,6 @@ DeviceStatusEnum deviceStatus = NONE;  // Initial state is set to NOT_READY.
 
 // Function prototype for the DeviceStatusThread function.
 void DeviceStatusThread(void* pvParameters);
-
-// Define the pin for the configuration button.
-int configurationButton = 6;
 
 // SoftAP configuration parameters.
 const char* configNetworkName = "SMAF-DK-SAP-CONFIG";
@@ -94,6 +83,9 @@ PubSubClient mqtt(wifiClient);  // Uses WiFiClient for MQTT communication.
 */
 SensoryAlert sensoryAlert(4, 2, 30, 5);
 
+// Define the pin for the configuration button.
+int configurationButton = 6;
+
 /**
 * @brief Initializes the SMAF-Development-Kit and runs once at the beginning.
 *
@@ -123,19 +115,18 @@ void setup() {
   // Start I2C and initialize BME280 sensor.
   // I2C pins - SDA: 1, SCL: 2
   Wire.begin(1, 2);
-  bme.begin(0x77);
 
   // Initialize visualization library and play intro melody on speaker.
   sensoryAlert.initializeNeoPixel();
   sensoryAlert.playIntroMelody();
 
-  // Delay for 2400 milliseconds (2.4 seconds).
-  delay(2400);
-
   // Print a formatted welcome message with build information.
   String buildVersion = "v0.002";
   String buildDate = "January, 2024.";
   Serial.printf("\n\rSMAF-DEVELOPMENT-KIT, Crafted with love in Europe.\n\rBuild version: %s\n\rBuild date: %s\n\r\n\r", buildVersion.c_str(), buildDate.c_str());
+
+  // Delay for 2400 milliseconds (2.4 seconds).
+  delay(2400);
 
   // Setup hardware Watchdog timer. Bark Bark.
   initWatchdog(30, true);
@@ -144,41 +135,27 @@ void setup() {
   // config.clearPreferences();
 
   // Load Wi-Fi and MQTT configuration preferences.
-  debug(CMD, "Loading preferences from '%s' namespace.", preferencesNamespace);
   config.loadPreferences();
-
-  // Log preferences information.
-  debug(LOG, "Network Name: '%s'.", config.getNetworkName());
-  debug(LOG, "Network Password: '%s'.", config.getNetworkPass());
-  debug(LOG, "MQTT Server address: '%s'.", config.getMqttServerAddress());
-  debug(LOG, "MQTT Server port: '%d'.", config.getMqttServerPort());
-  debug(LOG, "MQTT Username: '%s'.", config.getMqttUsername());
-  debug(LOG, "MQTT Password: '%s'.", config.getMqttPass());
-  debug(LOG, "MQTT Client ID: '%s'.", config.getMqttClientId());
-  debug(LOG, "MQTT Topic: '%s'.", config.getMqttTopic());
-
-  // Check if configuration preferences are valid and log the result.
-  (!config.isConfigValid()) ? debug(ERR, "Preferences not valid.") : debug(SCS, "Preferences are valid.");
 
   // Check if SoftAP configuration server should be started.
   if ((digitalRead(configurationButton) == LOW) || (!config.isConfigValid())) {
-    // Play configuration melody on speaker.
-    sensoryAlert.playConfigurationMelody();
-
     // Set device status to Maintenance Mode.
     deviceStatus = MAINTENANCE_MODE;
 
-    // Log information about starting SoftAP configuration server.
-    debug(CMD, "Initiating the SoftAP configuration server either at the user's request or due to invalid preferences.");
-    config.startConfig();
-    debug(SCS, "SoftAP configuration server started.");
-    debug(LOG, "SoftAP Name: '%s'.", config.getConfigNetworkName());
-    debug(LOG, "SoftAP Password: '%s'.", config.getConfigNetworkPass());
-    debug(LOG, "SoftAP Server IP address: '%s'.", config.getConfigServerIp());
-    debug(LOG, "SoftAP Server port: '%d'.", config.getConfigServerPort());
-
     // Disable WDT.
     suspendWatchdog();
+
+    // Play configuration melody on speaker.
+    sensoryAlert.playConfigurationMelody();
+
+    // Log SoftAP information and start SoftAP configuration server.
+    config.startConfig();
+
+    // Render the configuration page in maintenance mode.
+    while (true) {
+      config.renderConfigPage();
+      delay(10);
+    }
   } else {
     // Set device status to Not Ready Mode.
     deviceStatus = NOT_READY;
@@ -199,57 +176,35 @@ void setup() {
 String stringTime = String();
 
 void loop() {
-  // Render the configuration page in maintenance mode.
-  while (deviceStatus == MAINTENANCE_MODE) {
-    config.renderConfigPage();
-    delay(10);
-  }
-
   // Attempt to connect to the Wi-Fi network.
   connectToNetwork();
 
   // Attempt to connect to the MQTT broker.
   connectToMqttBroker();
 
-  configTime(3600, 3600, "pool.ntp.org");
-  // printLocalTime();
-
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    debug(ERR, "Failed to get time from NTP server.");
-    stringTime = "unknown";
-  }
-
-  char formattedTime[50];
-  strftime(formattedTime, sizeof(formattedTime), "%A, %B %d %Y %H:%M:%S", &timeinfo);
-  stringTime = String(formattedTime);
-  debug(LOG, "NTP: '%s'", formattedTime);
-
-  sensors_event_t temp_event, pressure_event, humidity_event;
-  bme_temp->getEvent(&temp_event);
-  bme_pressure->getEvent(&pressure_event);
-  bme_humidity->getEvent(&humidity_event);
-
   // Store MQTT data here.
   String mqttData = String();
 
   mqttData += "{";
   mqttData += "\"temperature\":";
-  mqttData += String(temp_event.temperature, 2);
+  // mqttData += String(bme.readTemperature(), 1);
+  mqttData += String(0.0, 1);
   mqttData += ",\"temperature_unit\":\"C\",";
   mqttData += "\"humidity\":";
-  mqttData += String(humidity_event.relative_humidity, 2);
+  // mqttData += String(bme.readHumidity(), 1);
+  mqttData += String(0.0, 1);
   mqttData += ",\"humidity_unit\":\"%\",";
   mqttData += "\"pressure\":";
-  mqttData += String(pressure_event.pressure, 2);
+  // mqttData += String(bme.readPressure() / 100.0F, 1);
+  mqttData += String(0 / 100.0F, 1);
   mqttData += ",\"pressure_unit\":\"hPa\",";
   mqttData += "\"time\":";
-  mqttData += "\"" + stringTime + "\"";
+  mqttData += "\"unknown\"";
   mqttData += "}";
 
   debug(LOG, "MQTT data package: '%s'.", mqttData.c_str());
 
-  //debug(SCS, "Device ready to post data, GNSS signal is locked. Data: '%s'.", mqttData.c_str());
+  // debug(SCS, "Device ready to post data, GNSS signal is locked. Data: '%s'.", mqttData.c_str());
   debug(CMD, "Posting data to MQTT broker '%s' on topic '%s'.", config.getMqttServerAddress(), config.getMqttTopic());
   mqtt.publish(config.getMqttTopic(), mqttData.c_str(), true);
 
@@ -260,40 +215,6 @@ void loop() {
   // This is hard core connection check.
   // If no data on topic is received, we are not connected to internet or server and watchdog will reset the device.
   mqtt.loop();
-}
-
-void printLocalTime() {
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
-    return;
-  }
-  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-  Serial.print("Day of week: ");
-  Serial.println(&timeinfo, "%A");
-  Serial.print("Month: ");
-  Serial.println(&timeinfo, "%B");
-  Serial.print("Day of Month: ");
-  Serial.println(&timeinfo, "%d");
-  Serial.print("Year: ");
-  Serial.println(&timeinfo, "%Y");
-  Serial.print("Hour: ");
-  Serial.println(&timeinfo, "%H");
-  Serial.print("Hour (12 hour format): ");
-  Serial.println(&timeinfo, "%I");
-  Serial.print("Minute: ");
-  Serial.println(&timeinfo, "%M");
-  Serial.print("Second: ");
-  Serial.println(&timeinfo, "%S");
-
-  Serial.println("Time variables");
-  char timeHour[3];
-  strftime(timeHour, 3, "%H", &timeinfo);
-  Serial.println(timeHour);
-  char timeWeekDay[10];
-  strftime(timeWeekDay, 10, "%A", &timeinfo);
-  Serial.println(timeWeekDay);
-  Serial.println();
 }
 
 /**
@@ -319,17 +240,11 @@ void connectToNetwork() {
 
     // Keep attempting to connect until successful.
     while (WiFi.status() != WL_CONNECTED) {
-      debug(CMD, "Connecting device to '%s'.", config.getNetworkName());
-
-      // Reset WDT.
-      // resetWatchdog();
+      debug(CMD, "Connecting device to '%s'", config.getNetworkName());
 
       // Attempt to connect to the Wi-Fi network using configured credentials.
       WiFi.begin(config.getNetworkName(), config.getNetworkPass());
       delay(6400);
-
-      // Uncomment the following line to restart the ESP32 in case of persistent connection issues.
-      // esp_restart();
     }
 
     // Log successful connection and set device status.
@@ -367,9 +282,6 @@ void connectToMqttBroker() {
     while (!mqtt.connected()) {
       debug(CMD, "Connecting device to MQTT broker '%s'.", config.getMqttServerAddress());
 
-      // Reset WDT.
-      // resetWatchdog();
-
       if (mqtt.connect(config.getMqttClientId(), config.getMqttUsername(), config.getMqttPass())) {
         // Log successful connection and set device status.
         debug(SCS, "Device connected to MQTT broker '%s'.", config.getMqttServerAddress());
@@ -405,12 +317,15 @@ void serverResponse(char* topic, byte* payload, unsigned int length) {
 * @param pvParameters Pointer to task parameters (not used in this function).
 */
 void DeviceStatusThread(void* pvParameters) {
-  while (true) {
+  for (;;) {
+    // Clear the NeoPixel LED strip.
+    sensoryAlert.clearNeoPixel();
+
     // Update LED status based on the current device status.
     switch (deviceStatus) {
       case NONE:
-        // Clear the NeoPixel LED strip.
-        sensoryAlert.clearNeoPixel();
+        // Idle or loading mode.
+        sensoryAlert.displayLoadingMode();
         break;
 
       case NOT_READY:

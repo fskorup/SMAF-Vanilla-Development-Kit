@@ -104,7 +104,27 @@ void SensoryAlert::playIntroMelody() {
 */
 void SensoryAlert::playConfigurationMelody() {
   tone(_speakerPin, NOTE_E6);
-  delay(1600);
+  delay(160);
+  noTone(_speakerPin);
+
+  delay(80);
+  tone(_speakerPin, NOTE_E6);
+  delay(160);
+  noTone(_speakerPin);
+
+  delay(80);
+  tone(_speakerPin, NOTE_E6);
+  delay(160);
+  noTone(_speakerPin);
+
+  delay(80);
+  tone(_speakerPin, NOTE_E6);
+  delay(160);
+  noTone(_speakerPin);
+
+  delay(80);
+  tone(_speakerPin, NOTE_E6);
+  delay(960);
   noTone(_speakerPin);
 }
 
@@ -166,11 +186,39 @@ void SensoryAlert::displayWaitingGnssMode() {
   uint32_t interval = 240;
 
   _neoPixel.setPixelColor(0, _neoPixel.Color(0, 0, 255));
-  _neoPixel.setPixelColor(1, _neoPixel.Color(0, 0, 255));
+  _neoPixel.setPixelColor(1, _neoPixel.Color(0, 0, 0));
   _neoPixel.show();
 
   delay(interval);
-  clearNeoPixel();
+
+  _neoPixel.setPixelColor(0, _neoPixel.Color(0, 0, 0));
+  _neoPixel.setPixelColor(1, _neoPixel.Color(0, 0, 255));
+  _neoPixel.show();
+
+  // clearNeoPixel();
+  delay(interval);
+}
+
+/**
+* @brief Sets the device to the maintenance mode.
+*
+* This function sets the device to the maintenance mode, indicating that it is undergoing maintenance or configuration changes.
+* It can be used to temporarily disable normal operation and perform maintenance tasks on the device.
+*/
+void SensoryAlert::displayLoadingMode() {
+  uint32_t interval = 240;
+
+  _neoPixel.setPixelColor(0, _neoPixel.Color(255, 0, 255));
+  _neoPixel.setPixelColor(1, _neoPixel.Color(0, 0, 0));
+  _neoPixel.show();
+
+  delay(interval);
+
+  _neoPixel.setPixelColor(0, _neoPixel.Color(0, 0, 0));
+  _neoPixel.setPixelColor(1, _neoPixel.Color(255, 0, 255));
+  _neoPixel.show();
+
+  // clearNeoPixel();
   delay(interval);
 }
 

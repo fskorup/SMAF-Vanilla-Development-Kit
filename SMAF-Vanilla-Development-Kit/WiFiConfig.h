@@ -52,6 +52,10 @@
 #define MQTT_CLIENT_ID "mqttClient"       // MQTT client ID.
 #define MQTT_TOPIC "mqttTopic"            // MQTT topic.
 
+// Define preferences read write modes.
+#define READ_WRITE_MODE false
+#define READ_ONLY_MODE true
+
 class WiFiConfig {
 public:
   /**
@@ -133,15 +137,6 @@ public:
   void renderConfigPage();
 
   /**
-  * @brief Save Wi-Fi and MQTT configuration preferences.
-  *
-  * This method stores the current configuration parameters to non-volatile storage
-  * using the Preferences library. It saves Wi-Fi network name, password, MQTT server
-  * address, port, username, password, client ID, and topic for future use.
-  */
-  void savePreferences();
-
-  /**
   * @brief Load Wi-Fi and MQTT configuration preferences.
   *
   * This method reads configuration parameters from non-volatile storage using the
@@ -165,6 +160,34 @@ public:
   * @return True if the configuration is valid, false otherwise.
   */
   bool isConfigValid();
+
+  /**
+  * @brief Lorem Ipsum
+  *
+  * @return Lorem Ipsum
+  */
+  String loadString(const char* key);
+
+  /**
+  * @brief Lorem Ipsum
+  *
+  * @return Lorem Ipsum
+  */
+  void saveString(const char* key, String value);
+
+  /**
+  * @brief Lorem Ipsum
+  *
+  * @return Lorem Ipsum
+  */
+  uint16_t loadInt(const char* key);
+
+  /**
+  * @brief Lorem Ipsum
+  *
+  * @return Lorem Ipsum
+  */
+  void saveInt(const char* key, uint16_t value);
 
   /**
   * @brief Get the configured Wi-Fi network name.

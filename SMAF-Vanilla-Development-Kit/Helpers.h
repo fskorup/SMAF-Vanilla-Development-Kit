@@ -30,6 +30,10 @@
 
 #include "Arduino.h"
 #include "esp_task_wdt.h"
+#include "esp_system.h"
+
+// Define a macro for comparing version numbers
+#define VERSION_CHECK(major, minor, patch) ((major)*10000 + (minor)*100 + (patch))
 
 /**
 * @enum messageTypeEnum

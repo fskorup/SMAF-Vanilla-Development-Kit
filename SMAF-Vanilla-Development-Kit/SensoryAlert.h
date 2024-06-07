@@ -114,6 +114,14 @@ public:
   * This function sets the device to the maintenance mode, indicating that it is undergoing maintenance or configuration changes.
   * It can be used to temporarily disable normal operation and perform maintenance tasks on the device.
   */
+  void displayLoadingMode();
+
+  /**
+  * @brief Sets the device to the maintenance mode.
+  *
+  * This function sets the device to the maintenance mode, indicating that it is undergoing maintenance or configuration changes.
+  * It can be used to temporarily disable normal operation and perform maintenance tasks on the device.
+  */
   void displayMaintenanceMode();
 
 

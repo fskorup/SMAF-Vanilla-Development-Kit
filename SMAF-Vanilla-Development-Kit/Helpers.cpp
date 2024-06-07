@@ -88,8 +88,25 @@ void debug(MessageTypeEnum messageType, const char *format, ...) {
 *              reset without causing a restart.
 */
 void initWatchdog(uint32_t timeout, bool panic) {
+// Check if the ESP32 core version is 3.0.0 or lower.
+// ESP32 Core changed initialization methods for watchdog timers in version 3.0.0 or higher.
+#if (VERSION_CHECK(ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH) < VERSION_CHECK(3, 0, 0))
+  // ESP32 Arduino Core < 3.0
+  // Initialize the watchdog.
   esp_task_wdt_init(timeout, panic);
-  esp_task_wdt_add(NULL);  // Add current thread to WDT watch.
+  esp_task_wdt_add(NULL);
+#else
+  // ESP32 Arduino Core >= 3.0
+  // Define the configuration structure.
+  esp_task_wdt_config_t config = {
+    .timeout_ms = timeout * 1000,  // Timeout
+    .trigger_panic = panic         // Trigger panic if watchdog timer is not reset
+  };
+
+  // Initialize the watchdog timer with the configuration structure.
+  esp_task_wdt_reconfigure(&config);
+  esp_task_wdt_add(NULL);
+#endif
 
   // Log the status in the terminal.
   debug(LOG, "Watchdog timer intialized.");
