@@ -205,7 +205,7 @@ void WiFiConfig::renderConfigPage() {
   html += "}";
   html += "* {font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.5; color: var(--monochrome-100); margin: 0; padding: 0; box-sizing: border-box; outline: none; list-style: none; word-wrap: break-words; cursor: default;}";
   html += "body {display: flex;flex-direction: column;flex-wrap: nowrap;align-items: center;padding: 1.5rem 1.5rem 8rem;}";
-  html += "h1, h2, h3, h4, h5, h6 {color: inherit; line-height: 1.15; margin-top: 3.5rem; margin-bottom: 1rem; font-weight: 600;}";
+  html += "h1, h2, h3, h4, h5, h6 {color: inherit; line-height: 1.15; margin-top: 3.5rem; margin-bottom: 1rem; font-weight: 700; letter-spacing: -0.2px}";
   html += "h1 {font-size: 2.027rem; font-weight: 700;}";
   html += "h2 {font-size: 1.802rem;}";
   html += "h3 {font-size: 1.602rem;}";
@@ -231,14 +231,14 @@ void WiFiConfig::renderConfigPage() {
   html += "section.success {border-left: 3px solid var(--success-100); background: var(--success-200); color: var(--success-50);}";
   html += "section p {margin: 0; padding: 0;}";
   html += "section h6 {margin-top: 0;}";
-  html += ".frame {display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;}";
+  html += ".frame {display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem;}";
   html += ".input-frame {display: flex; flex-direction: column; gap: 0.25rem;}";
   html += ".checkbox-frame {display: flex; flex-direction: row; justify-content: space-between; align-content: center; align-items: center; gap: 0.5rem;}";
-  html += ".switch {position: relative; display: flex; flex-shrink: 0; width: 36px; height: 20px;}";
-  html += ".track {cursor: pointer; display: flex; justify-content: flex-start; align-items: center; background-color: var(--monochrome-200); box-shadow: 0 0 0 3px var(--monochrome-200); width: 100%; height: 100%; border-radius: 12px;}";
+  html += ".switch {position: relative; display: flex; flex-shrink: 0; width: 40px; height: 24px;}";
+  html += ".track {cursor: pointer; display: flex; justify-content: flex-start; align-items: center; background-color: var(--monochrome-200); box-shadow: 0 0 0 3px var(--monochrome-200); width: 100%; height: 100%; border-radius: 100px;}";
   html += ".track:hover {background-color: var(--monochrome-150); box-shadow: 0 0 0 3px var(--monochrome-150);}";
   html += ".track:active {background-color: var(--monochrome-125); box-shadow: 0 0 0 3px var(--monochrome-125);}";
-  html += ".thumb {display: flex; justify-content: center; align-items: center; width: 20px; height: 20px; pointer-events: none; border-radius: 100%; box-shadow: 0 0 0 8px var(--monochrome-300) inset;}";
+  html += ".thumb {display: flex; justify-content: center; align-items: center; width: 24px; height: 24px; pointer-events: none; border-radius: 100%; box-shadow: 0 0 0 9.5px var(--monochrome-300) inset;}";
   html += "input:checked + .track {background-color: var(--info-100); box-shadow: 0 0 0 3px var(--info-100); justify-content: flex-end;}";
   html += "input:checked + .track:hover {background-color: var(--info-75); box-shadow: 0 0 0 3px var(--info-75);}";
   html += "input:checked + .track:active {background-color: var(--info-50); box-shadow: 0 0 0 3px var(--info-50);}";
@@ -312,22 +312,22 @@ void WiFiConfig::renderConfigPage() {
   html += "<input id='" + String(MQTT_TOPIC) + "' type='text' name='" + String(MQTT_TOPIC) + "' value='" + getMqttTopic() + "' required>";
   html += "</div>";
   html += "</div>";
-  html += "<h4>Device<br>status</h4>";
+  html += "<h4>Audio/Visual<br>notifications</h4>";
   html += "<p>Your device is equipped with a buzzer and two RGB LEDs to show various statuses of connection. You can enable or disable those if you are irritated by the power of the LEDs or the sound of the buzzer.</p>";
   html += "<div class=\"frame\">";
   html += "<div class=\"checkbox-frame\">";
-  html += "<label for='" + String(LED_ENABLED) + "'>Enable RGB LEDs</label>";
+  html += "<label for='" + String(BUZZER_ENABLED) + "'>Enable audio notifications</label>";
   html += "<label class=\"switch\">";
-  html += "<input id='" + String(LED_ENABLED) + "' type=\"checkbox\" name='" + String(LED_ENABLED) + "' value=\"true\"" + (getIsLedEnabled() ? "Checked" : "") + ">";
+  html += "<input id='" + String(BUZZER_ENABLED) + "' type=\"checkbox\" name='" + String(BUZZER_ENABLED) + "' value=\"true\"" + (getIsBuzzerEnabled() ? "Checked" : "") + ">";
   html += "<div class=\"track\">";
   html += "<div class=\"thumb\"></div>";
   html += "</div>";
   html += "</label>";
   html += "</div>";
   html += "<div class=\"checkbox-frame\">";
-  html += "<label for='" + String(BUZZER_ENABLED) + "'>Enable buzzer</label>";
+  html += "<label for='" + String(LED_ENABLED) + "'>Enable visual notifications</label>";
   html += "<label class=\"switch\">";
-  html += "<input id='" + String(BUZZER_ENABLED) + "' type=\"checkbox\" name='" + String(BUZZER_ENABLED) + "' value=\"true\"" + (getIsBuzzerEnabled() ? "Checked" : "") + ">";
+  html += "<input id='" + String(LED_ENABLED) + "' type=\"checkbox\" name='" + String(LED_ENABLED) + "' value=\"true\"" + (getIsLedEnabled() ? "Checked" : "") + ">";
   html += "<div class=\"track\">";
   html += "<div class=\"thumb\"></div>";
   html += "</div>";
@@ -337,7 +337,7 @@ void WiFiConfig::renderConfigPage() {
   html += "<h4>Finish<br>configuration</h4>";
   html += "<p>Ready to roll? Click \"Upload Configuration\" to apply changes, and SMAF will initiate its own reset to seamlessly implement the updated settings.</p>";
   html += "<section class='info'>";
-  html += "<p>Note: Ensure all necessary data is entered; SMAF won't connect or transmit data without it.</p>";
+  html += "<p>Note: Ensure all necessary data is entered correctly; SMAF won't connect or transmit data if something with the data is wrong.</p>";
   html += "</section>";
   html += "<div class=\"horizontal-frame\">";
   html += "<input type=\"reset\" value=\"Reset form\">";
@@ -452,8 +452,8 @@ void WiFiConfig::loadPreferences() {
     debug(LOG, "MQTT Password: '%s'.", getMqttPass());
     debug(LOG, "MQTT Client ID: '%s'.", getMqttClientId());
     debug(LOG, "MQTT Topic: '%s'.", getMqttTopic());
-    debug(LOG, "RGB status: '%s'.", getIsLedEnabled() ? "Enabled" : "Disabled");
-    debug(LOG, "Buzzers status: '%s'.", getIsBuzzerEnabled() ? "Enabled" : "Disabled");
+    debug(LOG, "Audio notifications %s.", getIsBuzzerEnabled() ? "enabled" : "disabled");
+    debug(LOG, "Visual notifications %s.", getIsLedEnabled() ? "enabled" : "disabled");
 
     // End preferences session.
     preferences.end();
@@ -851,7 +851,7 @@ String WiFiConfig::parseFieldValue(String data, String fieldId) {
 
   // Determine the end index based on the minimum of ampIndex and httpIndex, or the end of the data String.
   int endIndex = data.length();
-  
+
   if (ampIndex != -1 && (ampIndex < httpIndex || httpIndex == -1)) {
     endIndex = ampIndex;
   } else if (httpIndex != -1) {
