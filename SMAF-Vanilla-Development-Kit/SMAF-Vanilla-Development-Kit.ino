@@ -83,6 +83,10 @@ PubSubClient mqtt(wifiClient);  // Uses WiFiClient for MQTT communication.
 */
 SensoryAlert sensoryAlert(4, 2, 30, 5);
 
+// Define variables.
+bool isLedEnabled = false;
+bool isBuzzerEnabled = false;
+
 // Define the pin for the configuration button.
 int configurationButton = 6;
 
@@ -116,10 +120,14 @@ void setup() {
   // I2C pins - SDA: 1, SCL: 2
   Wire.begin(1, 2);
 
+  // Load defice config for sensory alert library.
+  isLedEnabled = config.getIsLedEnabled();
+  isBuzzerEnabled = config.getIsBuzzerEnabled();
+
   // Initialize visualization library and play intro melody on speaker.
   sensoryAlert.initializeNeoPixel();
 
-  if (config.getIsBuzzerEnabled()) {
+  if (isBuzzerEnabled) {
     sensoryAlert.playIntroMelody();
   }
 
@@ -149,7 +157,7 @@ void setup() {
     suspendWatchdog();
 
     // Play configuration melody on speaker.
-    if (config.getIsBuzzerEnabled()) {
+    if (isBuzzerEnabled) {
       sensoryAlert.playConfigurationMelody();
     }
 
@@ -326,42 +334,34 @@ void DeviceStatusThread(void* pvParameters) {
     // Clear the NeoPixel LED strip.
     sensoryAlert.clearNeoPixel();
 
-    // Update LED status based on the current device status.
-    switch (deviceStatus) {
-      case NONE:
-        // Idle or loading mode.
-        if (config.getIsLedEnabled()) {
+    if (isLedEnabled) {
+      // Update LED status based on the current device status.
+      switch (deviceStatus) {
+        case NONE:
+          // Idle or loading mode.
           sensoryAlert.displayLoadingMode();
-        }
-        break;
+          break;
 
-      case NOT_READY:
-        // Blink the LED in red to indicate 'NOT_READY' status.
-        if (config.getIsLedEnabled()) {
+        case NOT_READY:
+          // Blink the LED in red to indicate 'NOT_READY' status.
           sensoryAlert.displayNotReadyMode();
-        }
-        break;
+          break;
 
-      case READY_TO_SEND:
-        // Burst the LED in green to indicate 'READY_TO_SEND' status.
-        if (config.getIsLedEnabled()) {
+        case READY_TO_SEND:
+          // Burst the LED in green to indicate 'READY_TO_SEND' status.
           sensoryAlert.displayReadyToSendMode();
-        }
-        break;
+          break;
 
-      case WAITING_GNSS:
-        // Blink the LED in blue to indicate 'WAITING_GNSS' status.
-        if (config.getIsLedEnabled()) {
+        case WAITING_GNSS:
+          // Blink the LED in blue to indicate 'WAITING_GNSS' status.
           sensoryAlert.displayWaitingGnssMode();
-        }
-        break;
+          break;
 
-      case MAINTENANCE_MODE:
-        // Blink the LED in purple to indicate 'MAINTENANCE_MODE' status.
-        if (config.getIsLedEnabled()) {
+        case MAINTENANCE_MODE:
+          // Blink the LED in purple to indicate 'MAINTENANCE_MODE' status.
           sensoryAlert.displayMaintenanceMode();
-        }
-        break;
+          break;
+      }
     }
   }
 }
