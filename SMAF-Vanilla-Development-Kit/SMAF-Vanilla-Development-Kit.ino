@@ -118,7 +118,10 @@ void setup() {
 
   // Initialize visualization library and play intro melody on speaker.
   sensoryAlert.initializeNeoPixel();
-  sensoryAlert.playIntroMelody();
+
+  if (config.getIsBuzzerEnabled()) {
+    sensoryAlert.playIntroMelody();
+  }
 
   // Print a formatted welcome message with build information.
   String buildVersion = "v0.002";
@@ -146,7 +149,9 @@ void setup() {
     suspendWatchdog();
 
     // Play configuration melody on speaker.
-    sensoryAlert.playConfigurationMelody();
+    if (config.getIsBuzzerEnabled()) {
+      sensoryAlert.playConfigurationMelody();
+    }
 
     // Log SoftAP information and start SoftAP configuration server.
     config.startConfig();
@@ -325,27 +330,37 @@ void DeviceStatusThread(void* pvParameters) {
     switch (deviceStatus) {
       case NONE:
         // Idle or loading mode.
-        sensoryAlert.displayLoadingMode();
+        if (config.getIsLedEnabled()) {
+          sensoryAlert.displayLoadingMode();
+        }
         break;
 
       case NOT_READY:
         // Blink the LED in red to indicate 'NOT_READY' status.
-        sensoryAlert.displayNotReadyMode();
+        if (config.getIsLedEnabled()) {
+          sensoryAlert.displayNotReadyMode();
+        }
         break;
 
       case READY_TO_SEND:
         // Burst the LED in green to indicate 'READY_TO_SEND' status.
-        sensoryAlert.displayReadyToSendMode();
+        if (config.getIsLedEnabled()) {
+          sensoryAlert.displayReadyToSendMode();
+        }
         break;
 
       case WAITING_GNSS:
         // Blink the LED in blue to indicate 'WAITING_GNSS' status.
-        sensoryAlert.displayWaitingGnssMode();
+        if (config.getIsLedEnabled()) {
+          sensoryAlert.displayWaitingGnssMode();
+        }
         break;
 
       case MAINTENANCE_MODE:
         // Blink the LED in purple to indicate 'MAINTENANCE_MODE' status.
-        sensoryAlert.displayMaintenanceMode();
+        if (config.getIsLedEnabled()) {
+          sensoryAlert.displayMaintenanceMode();
+        }
         break;
     }
   }

@@ -197,7 +197,12 @@ void WiFiConfig::renderConfigPage() {
   html += "<title>SMAF-DK-SAP</title>";
   html += "<script> function refreshScan() {window.location.href = '/refresh';} </script>";
   html += "<style>";
-  html += ":root {--monochrome-100: #202326; --monochrome-200: #D7DFE8; --monochrome-300: #FFFFFF; --info-50: #003366; --info-100: #0180FF; --info-200: #F2F9FF; --success-50: #004D0D; --success-100: #00CC22; --success-200: #F2FFF4; --error-50: #661414; --error-100: #FF3333; --error-200: #FFF2F2;}";
+  html += ":root {";
+  html += "--monochrome-100: hsl(210, 10%, 10%); --monochrome-125: hsl(210, 10%, 50%); --monochrome-150: hsl(210, 10%, 70%); --monochrome-200: hsl(210, 10%, 85%); --monochrome-250: hsl(210, 10%, 95%); --monochrome-300: hsl(0, 0%, 100%);";
+  html += "--info-50: hsl(210, 100%, 20%); --info-75: hsl(210, 100%, 35%); --info-100: hsl(210, 100%, 50%); --info-200: hsl(210, 100%, 95%);";
+  html += "--success-50: hsl(130, 100%, 15%); --success-75: hsl(130, 100%, 25%); --success-100: hsl(130, 100%, 40%); --success-200: hsl(130, 100%, 95%);";
+  html += "--error-50: hsl(0, 100%, 24%); --error-75: hsl(0, 100%, 35%); --error-100: hsl(0, 100%, 60%); --error-200: hsl(0, 100%, 97%);";
+  html += "}";
   html += "* {font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.5; color: var(--monochrome-100); margin: 0; padding: 0; box-sizing: border-box; outline: none; list-style: none; word-wrap: break-words; cursor: default;}";
   html += "body {display: flex;flex-direction: column;flex-wrap: nowrap;align-items: center;padding: 1.5rem 1.5rem 8rem;}";
   html += "h1, h2, h3, h4, h5, h6 {color: inherit; line-height: 1.15; margin-top: 3.5rem; margin-bottom: 1rem; font-weight: 600;}";
@@ -210,17 +215,17 @@ void WiFiConfig::renderConfigPage() {
   html += "p {color: inherit; margin-top: 1rem; margin-bottom: 1rem;}";
   html += "label {font-weight: 500;}";
   html += "form {max-width: 460px;}";
-  html += "input[type='text'], input[type='submit'], input[type='reset'], select, button {all: unset;}";
+  html += "input[type='text'], input[type='submit'], input[type='reset'], select, input[type='checkbox'], button {all: unset;}";
   html += "input[type='text'], select {font-family: monospace, sans-serif; padding: 0.75rem 1rem; box-shadow: 0 0 0 1px var(--monochrome-200) inset; cursor: text;}";
   html += "input[type='text']:hover, select:hover {box-shadow: 0 0 0 2px var(--monochrome-200) inset;}";
   html += "input[type='text']:focus, select:focus {box-shadow: 0 0 0 2px var(--info-100) inset;}";
   html += "input[type='submit'], input[type='reset'], button {font-weight: 500; cursor: pointer; padding: 1rem 1.5rem; flex-grow: 2; text-align: center;}";
   html += "input[type='submit'] {background: var(--info-100); color: var(--monochrome-300);}";
   html += "input[type='reset'], button {box-shadow: 0 0 0 1px var(--monochrome-200) inset; flex-shrink: 2; flex-grow: 1;}";
-  html += "input[type='submit']:hover {background: var(--info-50);}";
+  html += "input[type='submit']:hover {background: var(--info-75);}";
   html += "input[type='submit']:active {background: var(--info-50);}";
   html += "input[type='reset']:hover, button:hover {box-shadow: 0 0 0 2px var(--monochrome-200) inset;}";
-  html += "input[type='reset']:active, button:active {box-shadow: 0 0 0 2px var(--monochrome-200) inset;}";
+  html += "input[type='reset']:active, button:active {box-shadow: 0 0 0 2px var(--monochrome-200) inset; background: var(--monochrome-250);}";
   html += ".horizontal-frame {display: flex; flex-wrap: wrap; flex-direction: row; gap: 1.0rem; margin-top: 1.0rem;}";
   html += "section {border-left: 3px solid var(--info-100); background: var(--info-200); color: var(--info-50); padding: 1rem 1.25rem; margin: 1.5rem 0rem;}";
   html += "section.success {border-left: 3px solid var(--success-100); background: var(--success-200); color: var(--success-50);}";
@@ -228,6 +233,15 @@ void WiFiConfig::renderConfigPage() {
   html += "section h6 {margin-top: 0;}";
   html += ".frame {display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;}";
   html += ".input-frame {display: flex; flex-direction: column; gap: 0.25rem;}";
+  html += ".checkbox-frame {display: flex; flex-direction: row; justify-content: space-between; align-content: center; align-items: center; gap: 0.5rem;}";
+  html += ".switch {position: relative; display: flex; flex-shrink: 0; width: 36px; height: 20px;}";
+  html += ".track {cursor: pointer; display: flex; justify-content: flex-start; align-items: center; background-color: var(--monochrome-200); box-shadow: 0 0 0 3px var(--monochrome-200); width: 100%; height: 100%; border-radius: 12px;}";
+  html += ".track:hover {background-color: var(--monochrome-150); box-shadow: 0 0 0 3px var(--monochrome-150);}";
+  html += ".track:active {background-color: var(--monochrome-125); box-shadow: 0 0 0 3px var(--monochrome-125);}";
+  html += ".thumb {display: flex; justify-content: center; align-items: center; width: 20px; height: 20px; pointer-events: none; border-radius: 100%; box-shadow: 0 0 0 8px var(--monochrome-300) inset;}";
+  html += "input:checked + .track {background-color: var(--info-100); box-shadow: 0 0 0 3px var(--info-100); justify-content: flex-end;}";
+  html += "input:checked + .track:hover {background-color: var(--info-75); box-shadow: 0 0 0 3px var(--info-75);}";
+  html += "input:checked + .track:active {background-color: var(--info-50); box-shadow: 0 0 0 3px var(--info-50);}";
   html += ".h1-override {margin-top: 1.5rem; margin-bottom: 1.5rem;}";
   html += ".fake-link {text-decoration: underline; color: var(--info-100); font-weight: 500; cursor: pointer;}";
   html += "em {all: unset; color: var(--error-100); font-weight: 500;}";
@@ -298,6 +312,28 @@ void WiFiConfig::renderConfigPage() {
   html += "<input id='" + String(MQTT_TOPIC) + "' type='text' name='" + String(MQTT_TOPIC) + "' value='" + getMqttTopic() + "' required>";
   html += "</div>";
   html += "</div>";
+  html += "<h4>Device<br>status</h4>";
+  html += "<p>Your device is equipped with a buzzer and two RGB LEDs to show various statuses of connection. You can enable or disable those if you are irritated by the power of the LEDs or the sound of the buzzer.</p>";
+  html += "<div class=\"frame\">";
+  html += "<div class=\"checkbox-frame\">";
+  html += "<label for='" + String(LED_ENABLED) + "'>Enable RGB LEDs</label>";
+  html += "<label class=\"switch\">";
+  html += "<input id='" + String(LED_ENABLED) + "' type=\"checkbox\" name='" + String(LED_ENABLED) + "' value=\"true\"" + (getIsLedEnabled() ? "Checked" : "") + ">";
+  html += "<div class=\"track\">";
+  html += "<div class=\"thumb\"></div>";
+  html += "</div>";
+  html += "</label>";
+  html += "</div>";
+  html += "<div class=\"checkbox-frame\">";
+  html += "<label for='" + String(BUZZER_ENABLED) + "'>Enable buzzer</label>";
+  html += "<label class=\"switch\">";
+  html += "<input id='" + String(BUZZER_ENABLED) + "' type=\"checkbox\" name='" + String(BUZZER_ENABLED) + "' value=\"true\"" + (getIsBuzzerEnabled() ? "Checked" : "") + ">";
+  html += "<div class=\"track\">";
+  html += "<div class=\"thumb\"></div>";
+  html += "</div>";
+  html += "</label>";
+  html += "</div>";
+  html += "</div>";
   html += "<h4>Finish<br>configuration</h4>";
   html += "<p>Ready to roll? Click \"Upload Configuration\" to apply changes, and SMAF will initiate its own reset to seamlessly implement the updated settings.</p>";
   html += "<section class='info'>";
@@ -333,6 +369,18 @@ void WiFiConfig::renderConfigPage() {
     saveString(MQTT_PASS, parseFieldValue(request, MQTT_PASS));
     saveString(MQTT_CLIENT_ID, parseFieldValue(request, MQTT_CLIENT_ID));
     saveString(MQTT_TOPIC, parseFieldValue(request, MQTT_TOPIC));
+
+    if (parseFieldValue(request, LED_ENABLED).isEmpty()) {
+      saveBool(LED_ENABLED, false);
+    } else {
+      saveBool(LED_ENABLED, true);
+    }
+
+    if (parseFieldValue(request, BUZZER_ENABLED).isEmpty()) {
+      saveBool(BUZZER_ENABLED, false);
+    } else {
+      saveBool(BUZZER_ENABLED, true);
+    }
 
     // Show debug message.
     debug(SCS, "Saving preferences to '%s' namespace done.", _preferencesNamespace);
@@ -404,6 +452,8 @@ void WiFiConfig::loadPreferences() {
     debug(LOG, "MQTT Password: '%s'.", getMqttPass());
     debug(LOG, "MQTT Client ID: '%s'.", getMqttClientId());
     debug(LOG, "MQTT Topic: '%s'.", getMqttTopic());
+    debug(LOG, "RGB status: '%s'.", getIsLedEnabled() ? "Enabled" : "Disabled");
+    debug(LOG, "Buzzers status: '%s'.", getIsBuzzerEnabled() ? "Enabled" : "Disabled");
 
     // End preferences session.
     preferences.end();
@@ -567,6 +617,61 @@ void WiFiConfig::saveInt(const char* key, uint16_t value) {
   }
 }
 
+
+/**
+* @brief Lorem Ipsum
+*
+* @return Lorem Ipsum
+*/
+bool WiFiConfig::loadBool(const char* key) {
+  // Create a Preferences instance with the specified namespace.
+  Preferences preferences;
+  static int data;
+
+  if (preferences.begin(_preferencesNamespace, READ_WRITE_MODE)) {
+    // Check if key exists and store default value if FALSE.
+    if (preferences.isKey(key) == false) {
+      preferences.putBool(key, true);
+    }
+
+    // Load value from key.
+    data = preferences.getBool(key);
+
+    // End preferences session.
+    preferences.end();
+  } else {
+    // Return a default value if loading fails
+    debug(ERR, "Loading '%s' key from '%s' namespace failed. Will use default value.", key, _preferencesNamespace);
+    data = 0;
+  }
+
+  return data;
+}
+
+/**
+* @brief Lorem Ipsum
+*
+* @return Lorem Ipsum
+*/
+void WiFiConfig::saveBool(const char* key, bool value) {
+  // Create a Preferences instance with the specified namespace.
+  Preferences preferences;
+
+  if (preferences.begin(_preferencesNamespace, READ_WRITE_MODE)) {
+    // Check if key exists and store default value if FALSE.
+    preferences.putBool(key, value);
+
+    // End preferences session.
+    preferences.end();
+
+    // Show success message.
+    debug(SCS, "Data saved to '%s' key in '%s' namespace.", key, _preferencesNamespace);
+  } else {
+    // Return a default value if loading fails
+    debug(ERR, "Saving data to '%s' key in '%s' namespace failed.", key, _preferencesNamespace);
+  }
+}
+
 /**
 * @brief Get the configured Wi-Fi network name.
 * 
@@ -666,6 +771,26 @@ const char* WiFiConfig::getMqttTopic() {
 }
 
 /**
+*
+*
+*
+*/
+bool WiFiConfig::getIsLedEnabled() {
+  static bool isLedEnabled = loadBool(LED_ENABLED);
+  return isLedEnabled;
+}
+
+/**
+*
+*
+*
+*/
+bool WiFiConfig::getIsBuzzerEnabled() {
+  static bool isBuzzerEnabled = loadBool(BUZZER_ENABLED);
+  return isBuzzerEnabled;
+}
+
+/**
 * @brief Get the MQTT server port.
 *
 * @return The MQTT server port.
@@ -691,19 +816,50 @@ uint16_t WiFiConfig::getMqttServerPort() {
 * @see removeSpaces()
 */
 String WiFiConfig::parseFieldValue(String data, String fieldId) {
+  // // Find the index of the specified field ID in the data String.
+  // int index = data.indexOf(fieldId) + fieldId.length() + 1;
+  // String value = String();
+
+  // // Find the indices of the next ampersand (&) and " HTTP" in the data String.
+  // int ampIndex = data.indexOf("&", index);
+  // int httpIndex = data.indexOf(" HTTP", index);
+
+  // // Determine the end index based on the minimum of ampIndex and httpIndex, or the end of the data String.
+  // int endIndex = min(static_cast<int>(ampIndex != -1 ? ampIndex : httpIndex), static_cast<int>(data.length()));
+
+  // // Extract the value substring based on the determined indices.
+  // value = data.substring(index, endIndex);
+
+  // // Return an empty String if the extracted value is empty, otherwise, URL-decode and remove spaces.
+  // return value.isEmpty() ? String() : removeSpaces(decodeResponse(value));
+
   // Find the index of the specified field ID in the data String.
-  int index = data.indexOf(fieldId) + fieldId.length() + 1;
+  int startIndex = data.indexOf(fieldId + "=");
+
+  // If the field ID is not found, return an empty String.
+  if (startIndex == -1) {
+    return String();
+  }
+
+  // Adjust the startIndex to the position of the value after '='
+  startIndex += fieldId.length() + 1;
   String value = String();
 
   // Find the indices of the next ampersand (&) and " HTTP" in the data String.
-  int ampIndex = data.indexOf("&", index);
-  int httpIndex = data.indexOf(" HTTP", index);
+  int ampIndex = data.indexOf("&", startIndex);
+  int httpIndex = data.indexOf(" HTTP", startIndex);
 
   // Determine the end index based on the minimum of ampIndex and httpIndex, or the end of the data String.
-  int endIndex = min(static_cast<int>(ampIndex != -1 ? ampIndex : httpIndex), static_cast<int>(data.length()));
+  int endIndex = data.length();
+  
+  if (ampIndex != -1 && (ampIndex < httpIndex || httpIndex == -1)) {
+    endIndex = ampIndex;
+  } else if (httpIndex != -1) {
+    endIndex = httpIndex;
+  }
 
   // Extract the value substring based on the determined indices.
-  value = data.substring(index, endIndex);
+  value = data.substring(startIndex, endIndex);
 
   // Return an empty String if the extracted value is empty, otherwise, URL-decode and remove spaces.
   return value.isEmpty() ? String() : removeSpaces(decodeResponse(value));

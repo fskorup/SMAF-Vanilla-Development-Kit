@@ -51,6 +51,8 @@
 #define MQTT_PASS "mqttPass"              // MQTT password.
 #define MQTT_CLIENT_ID "mqttClient"       // MQTT client ID.
 #define MQTT_TOPIC "mqttTopic"            // MQTT topic.
+#define LED_ENABLED "ledEnabled"          // RGB status enabled.
+#define BUZZER_ENABLED "buzzerEnabled"    // Buzzer status enabled.
 
 // Define preferences read write modes.
 #define READ_WRITE_MODE false
@@ -190,6 +192,20 @@ public:
   void saveInt(const char* key, uint16_t value);
 
   /**
+  * @brief Lorem Ipsum
+  *
+  * @return Lorem Ipsum
+  */
+  bool loadBool(const char* key);
+
+  /**
+  * @brief Lorem Ipsum
+  *
+  * @return Lorem Ipsum
+  */
+  void saveBool(const char* key, bool value);
+
+  /**
   * @brief Get the configured Wi-Fi network name.
   * 
   * @return const char* representing the Wi-Fi network name.
@@ -267,6 +283,20 @@ public:
   const char* getMqttTopic();
 
   /**
+  *
+  *
+  *
+  */
+  bool getIsLedEnabled();
+
+  /**
+  *
+  *
+  *
+  */
+  bool getIsBuzzerEnabled();
+
+  /**
   * @brief Get the MQTT server port.
   *
   * @return The MQTT server port.
@@ -293,6 +323,8 @@ private:
   String _mqttPass;              // MQTT password.
   String _mqttClientId;          // MQTT client ID.
   String _mqttTopic;             // MQTT topic.
+  bool _isLedEnabled;            // RGB status enabled.
+  bool _isBuzzerEnabled;         // Buzzer status enabled.
   uint16_t _mqttServerPort = 0;  // MQTT server port.
 
   // Flag indicating whether the configuration is valid.
