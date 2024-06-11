@@ -162,3 +162,14 @@ void suspendWatchdog() {
 String addLeadingZero(int value) {
   return (String(value).length() == 1) ? "0" + String(value) : String(value);
 }
+
+/**
+* @brief Check if a C-style string is empty.
+* 
+* @param str Pointer to the C-style string to check.
+* 
+* @return true if the string is empty (either a null pointer or the first character is '\0'), false otherwise.
+*/
+bool isEmpty(const char* str) {
+  return str == nullptr || str[0] == '\0';
+}

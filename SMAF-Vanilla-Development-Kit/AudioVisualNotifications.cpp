@@ -1,12 +1,11 @@
 /**
-* @file SensoryAlert.cpp
-* @brief Implementation of the SensoryAlert library for RGB LED and audio status indication.
+* @file AudioVisualNotifications.h
+* @brief Implementation of the AudioVisualNotifications library for RGB LED and audio status indication.
 *
-* This file contains the implementation for the SensoryAlert library, which facilitates
-* the indication of device status through an NEO-PIXEL LED. The library provides separate functions
-* to control the LED for displaying status in terms of red, green, and blue colors. It is designed
-* to be easily integrated into Arduino projects for visualizing various device states.
-*
+* This file contains the implementation for the AudioVisualNotifications library, which facilitates
+* the indication of device status through a NeoPixel LED and audio feedback. The library provides separate functions
+* to control the LED for displaying status in terms of colors, as well as functions to play various melodies for auditory feedback.
+* It is designed to be easily integrated into Arduino projects for visualizing various device states.
 *
 * @license MIT License
 *
@@ -30,14 +29,13 @@
 */
 
 #include "Arduino.h"
-#include "SensoryAlert.h"
+#include "AudioVisualNotifications.h"
 #include "Adafruit_NeoPixel.h"
-#include "PianoNotes.h"
 
 /**
-* @brief Constructor for SensoryAlert class.
+* @brief Constructs an instance of the AudioVisualNotifications class.
 *
-* Initializes an instance of the SensoryAlert class with the provided configurations.
+* Initializes an instance of the AudioVisualNotifications class with the provided configurations.
 * The NeoPixel pin should be set up as OUTPUT before calling this constructor.
 *
 * @param neoPixelPin The pin connected to the NeoPixel LED strip.
@@ -45,7 +43,7 @@
 * @param neoPixelBrightness The brightness level of the NeoPixels (0-255).
 * @param speakerPin The pin connected to the speaker for audio feedback.
 */
-SensoryAlert::SensoryAlert(int neoPixelPin, int neoPixelCount, int neoPixelBrightness, int speakerPin)
+AudioVisualNotifications::AudioVisualNotifications(int neoPixelPin, int neoPixelCount, int neoPixelBrightness, int speakerPin)
   : _neoPixelPin(neoPixelPin),
     _neoPixelCount(neoPixelCount),
     _neoPixelBrightness(neoPixelBrightness),
@@ -60,35 +58,35 @@ SensoryAlert::SensoryAlert(int neoPixelPin, int neoPixelCount, int neoPixelBrigh
 * provided during the construction of the SensoryAlert object.
 * It should be called once at the beginning of the program or whenever the NeoPixel strip needs to be re-initialized.
 */
-void SensoryAlert::initializeNeoPixel() {
+void AudioVisualNotifications::initializeVisualNotifications() {
   _neoPixel.begin();                             // INITIALIZE NeoPixel strip object (REQUIRED)
   _neoPixel.setBrightness(_neoPixelBrightness);  // Set BRIGHTNESS to about 1/5 (max = 255)
 }
 
 /**
-* @brief Clears the NeoPixel LED strip.
+* @brief Clears all visual notifications.
 *
 * This function turns off all NeoPixels in the LED strip, effectively clearing any previous colors or patterns.
 * It can be used to reset the NeoPixel strip to its default state or turn off any active visual feedback.
 */
-void SensoryAlert::clearNeoPixel() {
+void AudioVisualNotifications::clearAllVisualNotifications() {
   _neoPixel.clear();
   _neoPixel.show();
 }
 
 /**
-* @brief Plays the introductory melody.
+* @brief Plays an introductory melody.
 *
-* This function plays an introductory melody indicating the start of the device operation.
-* It can be used to provide an audible cue when the device is powered on or initialized.
+* This function plays a melody indicating the start of the device operation.
+* It can be used to provide auditory feedback when the device is powered on or initialized.
 */
-void SensoryAlert::playIntroMelody() {
+void AudioVisualNotifications::introAudioNotification() {
   tone(_speakerPin, NOTE_E6);
-  delay(160);
+  delay(120);
   noTone(_speakerPin);
 
   tone(_speakerPin, NOTE_F6);
-  delay(160);
+  delay(120);
   noTone(_speakerPin);
 
   tone(_speakerPin, NOTE_G6);
@@ -97,44 +95,60 @@ void SensoryAlert::playIntroMelody() {
 }
 
 /**
-* @brief Plays the configuration melody.
+* @brief Plays a maintenance melody.
 *
-* This function plays a melody indicating the device is in configuration mode.
-* It should be called when the device is in configuration mode to provide audible feedback.
+* This function plays a melody indicating that the device is in maintenance mode.
+* It can be used to provide auditory feedback when the device is undergoing maintenance or configuration changes.
 */
-void SensoryAlert::playConfigurationMelody() {
+void AudioVisualNotifications::maintenanceAudioNotification() {
+  // First part.
   tone(_speakerPin, NOTE_E6);
   delay(160);
   noTone(_speakerPin);
 
   delay(80);
+
   tone(_speakerPin, NOTE_E6);
   delay(160);
   noTone(_speakerPin);
 
   delay(80);
-  tone(_speakerPin, NOTE_E6);
+
+  tone(_speakerPin, NOTE_F6);
   delay(160);
   noTone(_speakerPin);
 
   delay(80);
-  tone(_speakerPin, NOTE_E6);
-  delay(160);
+
+  tone(_speakerPin, NOTE_G6);
+  delay(280);
   noTone(_speakerPin);
 
-  delay(80);
+  // Second part.
   tone(_speakerPin, NOTE_E6);
-  delay(960);
+  delay(120);
+  noTone(_speakerPin);
+
+  tone(_speakerPin, NOTE_F6);
+  delay(120);
+  noTone(_speakerPin);
+
+  tone(_speakerPin, NOTE_G6);
+  delay(320);
   noTone(_speakerPin);
 }
 
 /**
-* @brief Sets the device to the "not ready" mode.
+* @brief Displays a not-ready indication.
 *
-* This function sets the device to the "not ready" mode, indicating that it is not yet prepared for operation.
+* This function visually indicates that the device is not yet ready for operation
+* by alternating the color of the first two NeoPixels between red and black.
 * It can be used as part of the device initialization process or when certain conditions are not met for operation.
+*
+* @note This function alternates the color of the first two NeoPixels between red and black to indicate a not-ready state,
+*       pausing for a brief interval between color changes.
 */
-void SensoryAlert::displayNotReadyMode() {
+void AudioVisualNotifications::notReadyVisualNotification() {
   uint32_t interval = 240;
 
   _neoPixel.setPixelColor(0, _neoPixel.Color(255, 0, 0));
@@ -152,12 +166,16 @@ void SensoryAlert::displayNotReadyMode() {
 }
 
 /**
-* @brief Sets the device to the "ready to send" mode.
+* @brief Displays a ready-to-send indication.
 *
-* This function sets the device to the "ready to send" mode, indicating that it is prepared to send data or perform its main function.
+* This function visually indicates that the device is ready to send data or perform its main function
+* by blinking the first two NeoPixels in green color for a specified number of times in bursts.
 * It can be used to indicate that the device has completed its initialization process and is ready for operation.
+*
+* @param delayBeforeNextBurst The delay (in milliseconds) before starting the next burst of blinks.
+* @param blinkCount The number of times the NeoPixels should blink in one burst.
 */
-void SensoryAlert::displayReadyToSendMode() {
+void AudioVisualNotifications::readyToSendVisualNotification() {
   uint32_t delayBeforeNextBurst = 1200;
   int blinkCount = 4;
 
@@ -168,7 +186,7 @@ void SensoryAlert::displayReadyToSendMode() {
     _neoPixel.show();
 
     delay(40);
-    clearNeoPixel();
+    clearAllVisualNotifications();
     delay(40);
   }
 
@@ -177,12 +195,16 @@ void SensoryAlert::displayReadyToSendMode() {
 }
 
 /**
-* @brief Sets the device to the "waiting for GNSS" mode.
+* @brief Displays a waiting for GNSS fix indication.
 *
-* This function sets the device to the "waiting for GNSS" mode, indicating that it is waiting to acquire a GNSS (Global Navigation Satellite System) signal.
+* This function visually indicates that the device is waiting to acquire a GNSS (Global Navigation Satellite System) fix
+* by alternating the color of the first two NeoPixels between blue and black.
 * It can be used in applications where GNSS data is required for operation and the device is waiting for a valid signal.
+*
+* @note This function alternates the color of the first two NeoPixels between blue and black to indicate a waiting state for a GNSS fix,
+*       pausing for a brief interval between color changes.
 */
-void SensoryAlert::displayWaitingGnssMode() {
+void AudioVisualNotifications::waitingGnssFixVisualNotification() {
   uint32_t interval = 240;
 
   _neoPixel.setPixelColor(0, _neoPixel.Color(0, 0, 255));
@@ -200,12 +222,15 @@ void SensoryAlert::displayWaitingGnssMode() {
 }
 
 /**
-* @brief Sets the device to the maintenance mode.
+* @brief Displays a loading indication.
 *
-* This function sets the device to the maintenance mode, indicating that it is undergoing maintenance or configuration changes.
-* It can be used to temporarily disable normal operation and perform maintenance tasks on the device.
+* This function visually indicates a loading state by alternating the color of the first two NeoPixels between magenta and black.
+* It can be used to provide visual feedback when the device is performing initialization or loading tasks.
+*
+* @note This function alternates the color of the first two NeoPixels between magenta and black to indicate a loading state,
+*       pausing for a brief interval between color changes.
 */
-void SensoryAlert::displayLoadingMode() {
+void AudioVisualNotifications::loadingVisualNotification() {
   uint32_t interval = 240;
 
   _neoPixel.setPixelColor(0, _neoPixel.Color(255, 0, 255));
@@ -223,12 +248,16 @@ void SensoryAlert::displayLoadingMode() {
 }
 
 /**
-* @brief Sets the device to the maintenance mode.
+* @brief Displays a maintenance indication.
 *
-* This function sets the device to the maintenance mode, indicating that it is undergoing maintenance or configuration changes.
-* It can be used to temporarily disable normal operation and perform maintenance tasks on the device.
+* This function visually indicates maintenance mode by illuminating the first two NeoPixels with magenta color.
+* It can be used to temporarily signal that the device is undergoing maintenance or configuration changes,
+* without actually setting the device to a specific mode.
+*
+* @note This function illuminates the first two NeoPixels with magenta color to indicate maintenance mode,
+*       pauses for a brief interval, then clears the NeoPixel strip.
 */
-void SensoryAlert::displayMaintenanceMode() {
+void AudioVisualNotifications::maintenanceVisualNotification() {
   uint32_t interval = 240;
 
   _neoPixel.setPixelColor(0, _neoPixel.Color(255, 0, 255));
@@ -236,6 +265,6 @@ void SensoryAlert::displayMaintenanceMode() {
   _neoPixel.show();
 
   delay(interval);
-  clearNeoPixel();
+  clearAllVisualNotifications();
   delay(interval);
 }
