@@ -103,19 +103,19 @@ void AudioVisualNotifications::introAudioNotification() {
 void AudioVisualNotifications::maintenanceAudioNotification() {
   // First part.
   tone(_speakerPin, NOTE_E6);
-  delay(160);
+  delay(120);
   noTone(_speakerPin);
 
   delay(80);
 
   tone(_speakerPin, NOTE_E6);
-  delay(160);
+  delay(120);
   noTone(_speakerPin);
 
   delay(80);
 
   tone(_speakerPin, NOTE_F6);
-  delay(160);
+  delay(120);
   noTone(_speakerPin);
 
   delay(80);
