@@ -173,3 +173,15 @@ String addLeadingZero(int value) {
 bool isEmpty(const char* str) {
   return str == nullptr || str[0] == '\0';
 }
+
+/**
+* @brief Encloses the given string within double quotes.
+*
+* This function takes a string `data` and returns it enclosed within double quotes.
+*
+* @param data The string to be enclosed within double quotes.
+* @return A String containing the input `data` enclosed within double quotes.
+*/
+String quotation(String data) {
+  return "\"" + data + "\"";
+}

@@ -29,6 +29,9 @@
 #include "AudioVisualNotifications.h"
 #include "Helpers.h"
 #include "Wire.h"
+#include "time.h"
+#include "Adafruit_SHT4x.h"
+#include "SparkFun_u-blox_GNSS_v3.h"
 
 // Define constants for ESP32 core numbers.
 #define ESP32_CORE_PRIMARY 0    // Numeric value representing the primary core.
@@ -98,6 +101,17 @@ AudioVisualNotifications notifications(4, 2, 30, 5);
 // Define the pin for the configurationuration button.
 int configurationurationButton = 6;
 
+// Adafruit SHT45 Library.
+Adafruit_SHT4x sht4 = Adafruit_SHT4x();
+
+// SFE_UBLOX_GNSS Library.
+SFE_UBLOX_GNSS gnss;
+
+// NTP Server configuration.
+const char* ntpServer = "europe.pool.ntp.org";  // Global - pool.ntp.org
+const long gmtOffset = 0;
+const int dstOffset = 0;
+
 /**
 * @brief Initializes the SMAF-Development-Kit and runs once at the beginning.
 *
@@ -121,11 +135,18 @@ void setup() {
   // Initialize serial communication at a baud rate of 115200.
   Serial.begin(115200);
 
+  // Set Wire library custom I2C pins.
+  // Example usage:
+  // Wire.setPins(SDA_PIN_NUMBER, SCL_PIN_NUMBER);
+  Wire.setPins(1, 2);
+
+  // Start sensor and set precision and heater.
+  sht4.begin();
+  sht4.setPrecision(SHT4X_HIGH_PRECISION);
+  sht4.setHeater(SHT4X_NO_HEATER);
+
   // Set the pin mode for the configurationuration button to INPUT.
   pinMode(configurationurationButton, INPUT);
-
-  // Start I2C and initialize BME280 sensor.
-  Wire.begin(1, 2);
 
   // Load all preferences to variables.
   networkName = configuration.getNetworkName();
@@ -179,6 +200,25 @@ void setup() {
     // Set device status to Not Ready Mode.
     deviceStatus = NOT_READY;
 
+    // Start GNSS module.
+    while (!gnss.begin()) {
+      debug(ERR, "GNSS module not detected on I2C lines.");
+      delay(800);
+    }
+
+    // Log successful GNSS module initialization.
+    debug(SCS, "GNSS module detected on I2C lines.");
+
+    // Set the I2C port to output UBX only (turn off NMEA noise).
+    gnss.setI2COutput(COM_TYPE_UBX);
+
+    // Initialize NTP server time configuration.
+    configTime(gmtOffset, dstOffset, ntpServer);
+
+    // MQTT Client message buffer size.
+    // Default is set to 256.
+    mqtt.setBufferSize(1024);
+
     // Setup hardware Watchdog timer. Bark Bark.
     initWatchdog(30, true);
   }
@@ -192,8 +232,6 @@ void setup() {
 * Be mindful of keeping the loop efficient and avoiding long blocking operations.
 *
 */
-String stringTime = String();
-
 void loop() {
   // Attempt to connect to the Wi-Fi network.
   connectToNetwork();
@@ -201,39 +239,96 @@ void loop() {
   // Attempt to connect to the MQTT broker.
   connectToMqttBroker();
 
+  // Read temperature and humidity.
+  sensors_event_t humidity, temp;
+  sht4.getEvent(&humidity, &temp);
+
+  // debug(LOG, "Enviroment sensor reads temperature of %s degrees celsius with relative humidity at %s percent.", String(temp.temperature, 1), String(humidity.relative_humidity, 1));
+
   // Store MQTT data here.
   String mqttData = String();
 
-  mqttData += "{";
-  mqttData += "\"temperature\":";
-  // mqttData += String(bme.readTemperature(), 1);
-  mqttData += String(0.0, 1);
-  mqttData += ",\"temperature_unit\":\"C\",";
-  mqttData += "\"humidity\":";
-  // mqttData += String(bme.readHumidity(), 1);
-  mqttData += String(0.0, 1);
-  mqttData += ",\"humidity_unit\":\"%\",";
-  mqttData += "\"pressure\":";
-  // mqttData += String(bme.readPressure() / 100.0F, 1);
-  mqttData += String(0 / 100.0F, 1);
-  mqttData += ",\"pressure_unit\":\"hPa\",";
-  mqttData += "\"time\":";
-  mqttData += "\"unknown\"";
-  mqttData += "}";
+  // Request (poll) the position, velocity and time (PVT) information.
+  // The module only responds when a new position is available. Default is once per second.
+  // getPVT() returns true when new data is received.
+  if (gnss.getPVT() == true) {
+    bool gnssFixOk = gnss.getGnssFixOk();
+    uint8_t satellitesInRange = gnss.getSIV();
+    int32_t latitude = gnss.getLatitude();
+    int32_t longitude = gnss.getLongitude();
+    int32_t speed = gnss.getGroundSpeed();
+    int32_t heading = gnss.getHeading();
+    int32_t altitude = gnss.getAltitudeMSL();
+    String timestamp = getUtcTimeString();
 
-  debug(LOG, "MQTT data package: '%s'.", mqttData.c_str());
+    // String constructMqttMessage(int32_t longitude, int32_t latitude, int32_t speed, int32_t altitude, String time)
+    mqttData = constructMqttMessage(
+      satellitesInRange,
+      longitude,
+      latitude,
+      altitude,
+      speed,
+      heading,
+      timestamp);
+
+    // debug(CMD, "Posting data package to MQTT broker '%s' on topic '%s'.", mqttServerAddress, mqttTopic);
+    // mqtt.publish(mqttTopic, mqttData.c_str(), true);
+
+    // If the device is ready to send, publish a message to the MQTT broker.
+    if (gnssFixOk && latitude != 0 && longitude != 0) {
+      deviceStatus = READY_TO_SEND;
+      debug(SCS, "Device is ready to post data, %d satellites locked.", satellitesInRange);
+      debug(CMD, "Posting data package to MQTT broker '%s' on topic '%s'.", mqttServerAddress, mqttTopic);
+      mqtt.publish(mqttTopic, mqttData.c_str(), true);
+    } else {
+      deviceStatus = WAITING_GNSS;
+      debug(ERR, "Device is not ready to post data. Searching for satellites, %d locked.", satellitesInRange);
+    }
+  }
+
+  // mqttData += "{";
+  // mqttData += "\"temperature\":";
+  // mqttData += String(temp.temperature, 1);
+  // mqttData += ",\"temperature_unit\":\"C\",";
+  // mqttData += "\"humidity\":";
+  // mqttData += String(humidity.relative_humidity);
+  // mqttData += ",\"humidity_unit\":\"%\",";
+  // mqttData += "\"time\":";
+  // mqttData += "\"unknown\"";
+  // mqttData += "}";
+
+  // debug(LOG, "MQTT data package: '%s'.", mqttData.c_str());
 
   // debug(SCS, "Device ready to post data, GNSS signal is locked. Data: '%s'.", mqttData.c_str());
-  debug(CMD, "Posting data to MQTT broker '%s' on topic '%s'.", mqttServerAddress, mqttTopic);
-  mqtt.publish(mqttTopic, mqttData.c_str(), true);
+  // debug(CMD, "Posting data to MQTT broker '%s' on topic '%s'.", mqttServerAddress, mqttTopic);
+  // mqtt.publish(mqttTopic, mqttData.c_str(), true);
 
-  // Delay between data publish.
-  delay(1600);
+  // // Delay between data publish.
+  // delay(1600);
 
   // Check for incoming data on defined MQTT topic.
   // This is hard core connection check.
   // If no data on topic is received, we are not connected to internet or server and watchdog will reset the device.
   mqtt.loop();
+}
+
+/**
+* @brief Handles the server response received on a specific MQTT topic.
+*
+* This function logs the server response using debug output. If the device status is not
+* in maintenance mode, it also resets the watchdog timer to prevent system reset.
+*
+* @param topic The MQTT topic on which the server response was received.
+* @param payload Pointer to the payload data received from the server.
+* @param length Length of the payload data.
+*/
+void serverResponse(char* topic, byte* payload, unsigned int length) {
+  debug(SCS, "Server '%s' responded.", mqttServerAddress);
+
+  // Reset WDT.
+  if (deviceStatus != MAINTENANCE_MODE) {
+    resetWatchdog();
+  }
 }
 
 /**
@@ -308,8 +403,8 @@ void connectToMqttBroker() {
         // Subscribe to MQTT topic.
         mqtt.subscribe(mqttTopic);
 
-        //deviceStatus = WAITING_GNSS;
-        deviceStatus = READY_TO_SEND;
+        deviceStatus = WAITING_GNSS;
+        // deviceStatus = READY_TO_SEND;
       } else {
         // Retry after a delay if connection failed.
         delay(4000);
@@ -318,13 +413,78 @@ void connectToMqttBroker() {
   }
 }
 
-void serverResponse(char* topic, byte* payload, unsigned int length) {
-  debug(SCS, "Server '%s' responded.", mqttServerAddress);
+/**
+* @brief Retrieves the current UTC time as a formatted string.
+*
+* This function retrieves the current UTC time using the system time. If successful,
+* it formats the time into a UTC date time string (e.g., "2024-06-20T20:56:59Z").
+* If the UTC time cannot be obtained, it returns "Unknown".
+*
+* @return A String containing the current UTC time in the specified format, or "Unknown" if the time cannot be retrieved.
+*/
+String getUtcTimeString() {
+  struct tm timeinfo;
 
-  // Reset WDT.
-  if (deviceStatus != MAINTENANCE_MODE) {
-    resetWatchdog();
+  if (!getLocalTime(&timeinfo)) {
+    return "Unknown";
   }
+
+  // Create a buffer to hold the formatted time string
+  char buffer[80];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
+  return String(buffer);
+}
+
+/**
+* @brief Constructs an MQTT message string containing GPS and time-related data.
+*
+* Constructs a JSON-formatted MQTT message string containing various GPS-related data
+* (satellites in range, longitude, latitude, speed, heading, altitude) and time-related
+* information (timestamp, GMT offset, DST offset).
+*
+* @param timestamp Human-readable timestamp in UTC format.
+* @param satellitesInRange Number of satellites currently in range.
+* @param longitude Longitude value in microdegrees (degrees * 1E-7).
+* @param latitude Latitude value in microdegrees (degrees * 1E-7).
+* @param altitude Altitude value in meters.
+* @param speed Speed value in meters per second.
+* @param heading Heading direction in microdegrees (degrees * 1E-5).
+* @return A String containing the constructed MQTT message in JSON format.
+*/
+String constructMqttMessage(uint8_t satellitesInRange, int32_t longitude, int32_t latitude, int32_t altitude, int32_t speed, int32_t heading, String timestamp) {
+  String message;
+
+  message += "{";
+  message += quotation("timestamp") + ":" + quotation(timestamp) + ",";
+  message += quotation("satellites") + ":" + String(satellitesInRange) + ",";
+  message += quotation("longitude") + ":";
+  message += "{";
+  message += quotation("value") + ":" + String((longitude * 1E-7), 6) + ",";
+  message += quotation("unit") + ":" + quotation("deg");
+  message += "},";
+  message += quotation("latitude") + ":";
+  message += "{";
+  message += quotation("value") + ":" + String((latitude * 1E-7), 6) + ",";
+  message += quotation("unit") + ":" + quotation("deg");
+  message += "},";
+  message += quotation("altitude") + ":";
+  message += "{";
+  message += quotation("value") + ":" + String(int((altitude / 1000.0) * 3.6)) + ",";
+  message += quotation("unit") + ":" + quotation("m");
+  message += "},";
+  message += quotation("speed") + ":";
+  message += "{";
+  message += quotation("value") + ":" + String(int((speed / 1000.0) * 3.6)) + ",";
+  message += quotation("unit") + ":" + quotation("km/h");
+  message += "},";
+  message += quotation("heading") + ":";
+  message += "{";
+  message += quotation("value") + ":" + String((heading * 1E-5), 0) + ",";
+  message += quotation("unit") + ":" + quotation("deg");
+  message += "}";
+  message += "}";
+
+  return message;
 }
 
 /**
