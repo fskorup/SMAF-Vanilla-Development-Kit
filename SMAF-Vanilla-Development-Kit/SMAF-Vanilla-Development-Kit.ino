@@ -469,7 +469,7 @@ String constructMqttMessage(uint8_t satellitesInRange, int32_t longitude, int32_
   message += "},";
   message += quotation("altitude") + ":";
   message += "{";
-  message += quotation("value") + ":" + String(int((altitude / 1000.0) * 3.6)) + ",";
+  message += quotation("value") + ":" + String(int((altitude / 1000.0))) + ",";
   message += quotation("unit") + ":" + quotation("m");
   message += "},";
   message += quotation("speed") + ":";
