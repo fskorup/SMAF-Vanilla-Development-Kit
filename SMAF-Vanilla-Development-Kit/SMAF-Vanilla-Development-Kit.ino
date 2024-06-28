@@ -31,6 +31,7 @@
 #include "Wire.h"
 #include "time.h"
 #include "SparkFun_u-blox_GNSS_v3.h"
+#include "Adafruit_SHT4x.h"
 
 // Define constants for ESP32 core numbers.
 #define ESP32_CORE_PRIMARY 0    // Numeric value representing the primary core.
@@ -102,6 +103,9 @@ int configurationurationButton = 6;
 
 // SFE_UBLOX_GNSS Library.
 SFE_UBLOX_GNSS gnss;
+
+// Adafruit SHT45 Library.
+Adafruit_SHT4x sht4 = Adafruit_SHT4x();
 
 // NTP Server configuration.
 const char* ntpServer = "europe.pool.ntp.org";  // Global - pool.ntp.org
@@ -190,6 +194,19 @@ void setup() {
   } else {
     // Set device status to Not Ready Mode.
     deviceStatus = NOT_READY;
+
+    // Start SHT4x module.
+    while (!sht4.begin()) {
+      debug(ERR, "SHT4x module not detected on I2C lines.");
+      delay(800);
+    }
+
+    // Log successful SHT4x module initialization.
+    debug(SCS, "SHT4x module detected on I2C lines.");
+
+    // Set SHT4x precision and heater settings.
+    sht4.setPrecision(SHT4X_HIGH_PRECISION);
+    sht4.setHeater(SHT4X_NO_HEATER);
 
     // Start GNSS module.
     while (!gnss.begin()) {
