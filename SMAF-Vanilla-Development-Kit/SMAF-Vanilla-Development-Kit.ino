@@ -30,7 +30,6 @@
 #include "Helpers.h"
 #include "Wire.h"
 #include "time.h"
-#include "Adafruit_SHT4x.h"
 #include "SparkFun_u-blox_GNSS_v3.h"
 
 // Define constants for ESP32 core numbers.
@@ -101,9 +100,6 @@ AudioVisualNotifications notifications(4, 2, 30, 5);
 // Define the pin for the configurationuration button.
 int configurationurationButton = 6;
 
-// Adafruit SHT45 Library.
-Adafruit_SHT4x sht4 = Adafruit_SHT4x();
-
 // SFE_UBLOX_GNSS Library.
 SFE_UBLOX_GNSS gnss;
 
@@ -139,11 +135,6 @@ void setup() {
   // Example usage:
   // Wire.setPins(SDA_PIN_NUMBER, SCL_PIN_NUMBER);
   Wire.setPins(1, 2);
-
-  // Start sensor and set precision and heater.
-  sht4.begin();
-  sht4.setPrecision(SHT4X_HIGH_PRECISION);
-  sht4.setHeater(SHT4X_NO_HEATER);
 
   // Set the pin mode for the configurationuration button to INPUT.
   pinMode(configurationurationButton, INPUT);
@@ -239,12 +230,6 @@ void loop() {
   // Attempt to connect to the MQTT broker.
   connectToMqttBroker();
 
-  // Read temperature and humidity.
-  sensors_event_t humidity, temp;
-  sht4.getEvent(&humidity, &temp);
-
-  // debug(LOG, "Enviroment sensor reads temperature of %s degrees celsius with relative humidity at %s percent.", String(temp.temperature, 1), String(humidity.relative_humidity, 1));
-
   // Store MQTT data here.
   String mqttData = String();
 
@@ -271,9 +256,6 @@ void loop() {
       heading,
       timestamp);
 
-    // debug(CMD, "Posting data package to MQTT broker '%s' on topic '%s'.", mqttServerAddress, mqttTopic);
-    // mqtt.publish(mqttTopic, mqttData.c_str(), true);
-
     // If the device is ready to send, publish a message to the MQTT broker.
     if (gnssFixOk && latitude != 0 && longitude != 0) {
       deviceStatus = READY_TO_SEND;
@@ -285,26 +267,6 @@ void loop() {
       debug(ERR, "Device is not ready to post data. Searching for satellites, %d locked.", satellitesInRange);
     }
   }
-
-  // mqttData += "{";
-  // mqttData += "\"temperature\":";
-  // mqttData += String(temp.temperature, 1);
-  // mqttData += ",\"temperature_unit\":\"C\",";
-  // mqttData += "\"humidity\":";
-  // mqttData += String(humidity.relative_humidity);
-  // mqttData += ",\"humidity_unit\":\"%\",";
-  // mqttData += "\"time\":";
-  // mqttData += "\"unknown\"";
-  // mqttData += "}";
-
-  // debug(LOG, "MQTT data package: '%s'.", mqttData.c_str());
-
-  // debug(SCS, "Device ready to post data, GNSS signal is locked. Data: '%s'.", mqttData.c_str());
-  // debug(CMD, "Posting data to MQTT broker '%s' on topic '%s'.", mqttServerAddress, mqttTopic);
-  // mqtt.publish(mqttTopic, mqttData.c_str(), true);
-
-  // // Delay between data publish.
-  // delay(1600);
 
   // Check for incoming data on defined MQTT topic.
   // This is hard core connection check.
