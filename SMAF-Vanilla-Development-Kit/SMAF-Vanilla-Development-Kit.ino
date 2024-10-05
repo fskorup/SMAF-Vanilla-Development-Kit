@@ -190,6 +190,9 @@ void setup() {
     // Render the configurationuration page in maintenance mode.
     while (true) {
       configuration.renderConfigurationPage();
+
+      // Prevent watchdog reset.
+      yield();
     }
   } else {
     // Set device status to Not Ready Mode.
@@ -499,5 +502,8 @@ void DeviceStatusThread(void* pvParameters) {
           break;
       }
     }
+
+    // Add a delay to prevent WDT timeout.
+    vTaskDelay(10 / portTICK_PERIOD_MS); // Delay for 10 milliseconds.
   }
 }
