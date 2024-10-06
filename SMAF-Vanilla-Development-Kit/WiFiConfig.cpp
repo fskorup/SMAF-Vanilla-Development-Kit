@@ -109,7 +109,8 @@ void WiFiConfig::renderConfigurationPage() {
 
   // Read the first line of the request.
   String request = client.readStringUntil('\r');
-  //client.flush();
+  // client.flush();
+  // client.clear();
 
   /**
   * @note THIS WILL BE UPDATED IN FUTURE VERSION.

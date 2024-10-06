@@ -58,7 +58,7 @@ const char* configurationNetworkPass = "123456789";
 const char* preferencesNamespace = "SMAF-DK";
 uint16_t configurationServerPort = 80;
 
-// WiFiconfiguration instance with the specified configurationuration.
+// WiFiconfiguration instance with the specified configuration.
 WiFiConfig configuration(configurationNetworkName,
                          configurationNetworkPass,
                          configurationServerPort,
