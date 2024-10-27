@@ -117,7 +117,6 @@ const int dstOffset = 0;
 *
 * This function is responsible for the initial setup of the SMAF-Development-Kit.
 * It is executed once when the Arduino board starts or is reset.
-* configurationuration settings, pin modes, and other one-time setup tasks can be performed here.
 *
 */
 void setup() {
