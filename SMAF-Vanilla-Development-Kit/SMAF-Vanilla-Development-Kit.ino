@@ -139,7 +139,7 @@ void setup() {
   // Wire.setPins(SDA_PIN_NUMBER, SCL_PIN_NUMBER);
   Wire.setPins(1, 2);
 
-  // Set the pin mode for the configurationuration button to INPUT.
+  // Set the pin mode for the configuration button to INPUT.
   pinMode(configurationurationButton, INPUT);
 
   // Load all preferences to variables.
